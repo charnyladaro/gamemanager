@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payments - GameManager Admin</title>
+    <link rel="stylesheet" href="../styles/admin.css">
+</head>
+
+<body>
+    <!-- Titlebar -->
+    <div class="titlebar">
+        <div class="titlebar-title">GameManager Admin Dashboard</div>
+        <div class="titlebar-controls">
+            <button class="titlebar-btn" onclick="minimizeWindow()">_</button>
+            <button class="titlebar-btn" onclick="maximizeWindow()">□</button>
+            <button class="titlebar-btn close" onclick="closeWindow()">×</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Admin Panel</h2>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-item" onclick="navigateTo('dashboard.html')">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('users.html')">
+                    <span class="nav-icon">👥</span>
+                    <span>Users</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('games.html')">
+                    <span class="nav-icon">🎮</span>
+                    <span>Games</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('scanned-games.html')">
+                    <span class="nav-icon">🔍</span>
+                    <span>Scanned Games</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('requests.html')">
+                    <span class="nav-icon">📝</span>
+                    <span>Game Requests</span>
+                </div>
+                <div class="nav-item active" onclick="navigateTo('payments.html')">
+                    <span class="nav-icon">💳</span>
+                    <span>Payments</span>
+                    <span id="payment-badge" class="badge" style="display: none; margin-left: 8px; background: #ef4444; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;"></span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('files.html')">
+                    <span class="nav-icon">📁</span>
+                    <span>File Management</span>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="btn-danger" style="width: 100%;" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="content-header">
+                <div class="flex-between">
+                    <div>
+                        <h1>Payment Management</h1>
+                        <p>Review and manage game payments</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-body">
+                <!-- Stats Cards -->
+                <div class="stats-grid" id="paymentStats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalRevenue">₱0.00</div>
+                        <div class="stat-label">Total Revenue</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="pendingPayments">0</div>
+                        <div class="stat-label">Pending Verification</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="completedPayments">0</div>
+                        <div class="stat-label">Completed Payments</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="failedPayments">0</div>
+                        <div class="stat-label">Failed Payments</div>
+                    </div>
+                </div>
+
+                <!-- Filter -->
+                <div class="card" style="margin: 20px 0;">
+                    <div class="card-body">
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label style="font-weight: bold;">Filter by Status:</label>
+                            <select id="statusFilter" class="form-input" style="max-width: 200px;">
+                                <option value="">All Payments</option>
+                                <option value="pending_verification">Pending Verification</option>
+                                <option value="completed">Completed</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                            <button class="btn-primary" onclick="loadPayments()">Apply Filter</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payments Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container" id="paymentsTable">
+                            <!-- Table will be loaded here -->
+                        </div>
+                        <div id="pagination"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../components/api.js"></script>
+    <script src="../components/ui.js"></script>
+    <script>
+        if (!checkAuth()) {
+            navigateTo('login.html');
+        }
+
+        let currentPage = 1;
+        let currentFilter = '';
+
+        const statusFilter = document.getElementById('statusFilter');
+        statusFilter.addEventListener('change', () => {
+            currentFilter = statusFilter.value;
+            currentPage = 1;
+            loadPayments();
+        });
+
+        async function loadPayments() {
+            try {
+                showLoading('Loading payments...');
+
+                const [paymentsData, statsData] = await Promise.all([
+                    API.getAllPayments(currentPage, 50, currentFilter),
+                    API.getPaymentStats()
+                ]);
+
+                renderPaymentsTable(paymentsData.payments);
+                renderPagination(paymentsData.pagination);
+                renderStats(statsData);
+
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to load payments: ' + error.message, 'error');
+            }
+        }
+
+        function renderStats(stats) {
+            document.getElementById('totalRevenue').textContent = `₱${stats.total_revenue.toFixed(2)}`;
+            document.getElementById('pendingPayments').textContent = stats.payment_counts.pending;
+            document.getElementById('completedPayments').textContent = stats.payment_counts.completed;
+            document.getElementById('failedPayments').textContent = stats.payment_counts.failed;
+        }
+
+        function renderPaymentsTable(payments) {
+            const container = document.getElementById('paymentsTable');
+
+            if (!payments || payments.length === 0) {
+                container.innerHTML = '<p style="color: #64748b; text-align: center; padding: 40px;">No payments found</p>';
+                return;
+            }
+
+            const table = createTable(
+                [
+                    {
+                        key: 'id',
+                        label: 'ID',
+                        width: '60px'
+                    },
+                    {
+                        key: 'game_title',
+                        label: 'Game'
+                    },
+                    {
+                        key: 'user.username',
+                        label: 'User',
+                        format: (_, payment) => payment.user.username
+                    },
+                    {
+                        key: 'amount',
+                        label: 'Amount',
+                        width: '120px',
+                        format: (value) => `₱${value.toFixed(2)}`
+                    },
+                    {
+                        key: 'gcash_reference_number',
+                        label: 'GCash Ref',
+                        format: (value) => value || 'N/A'
+                    },
+                    {
+                        key: 'status',
+                        label: 'Status',
+                        format: (value) => {
+                            if (value === 'completed') {
+                                return '<span class="badge badge-success">Completed</span>';
+                            } else if (value === 'pending_verification') {
+                                return '<span class="badge badge-warning">Pending</span>';
+                            } else if (value === 'failed') {
+                                return '<span class="badge badge-danger">Failed</span>';
+                            }
+                            return `<span class="badge">${value}</span>`;
+                        }
+                    },
+                    {
+                        key: 'created_at',
+                        label: 'Date',
+                        format: (value) => new Date(value).toLocaleDateString()
+                    }
+                ],
+                payments,
+                {
+                    width: '250px',
+                    render: (payment) => {
+                        const actions = document.createElement('div');
+                        actions.className = 'flex gap-1';
+
+                        if (payment.status === 'pending_verification') {
+                            const verifyBtn = document.createElement('button');
+                            verifyBtn.className = 'btn-success btn-small';
+                            verifyBtn.textContent = 'Verify';
+                            verifyBtn.onclick = () => verifyPayment(payment);
+
+                            const rejectBtn = document.createElement('button');
+                            rejectBtn.className = 'btn-danger btn-small';
+                            rejectBtn.textContent = 'Reject';
+                            rejectBtn.onclick = () => rejectPayment(payment);
+
+                            actions.appendChild(verifyBtn);
+                            actions.appendChild(rejectBtn);
+                        } else {
+                            const viewBtn = document.createElement('button');
+                            viewBtn.className = 'btn-primary btn-small';
+                            viewBtn.textContent = 'View Details';
+                            viewBtn.onclick = () => viewPaymentDetails(payment);
+                            actions.appendChild(viewBtn);
+                        }
+
+                        return actions;
+                    }
+                }
+            );
+
+            container.innerHTML = '';
+            container.appendChild(table);
+        }
+
+        function renderPagination(pagination) {
+            const container = document.getElementById('pagination');
+            container.innerHTML = '';
+
+            const paginationEl = createPagination(pagination, (page) => {
+                currentPage = page;
+                loadPayments();
+            });
+
+            container.appendChild(paginationEl);
+        }
+
+        async function verifyPayment(payment) {
+            const confirmed = await confirmAction(
+                `Verify payment of ₱${payment.amount.toFixed(2)} from ${payment.user.username} for "${payment.game_title}"?`
+            );
+
+            if (!confirmed) return;
+
+            try {
+                showLoading('Verifying payment...');
+                await API.verifyPayment(payment.id);
+                hideLoading();
+                showToast('Payment verified successfully! Game added to user library.', 'success');
+                loadPayments();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to verify payment: ' + error.message, 'error');
+            }
+        }
+
+        async function rejectPayment(payment) {
+            const confirmed = await confirmAction(
+                `Reject payment from ${payment.user.username}? This cannot be undone.`
+            );
+
+            if (!confirmed) return;
+
+            try {
+                showLoading('Rejecting payment...');
+                await API.rejectPayment(payment.id);
+                hideLoading();
+                showToast('Payment rejected', 'success');
+                loadPayments();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to reject payment: ' + error.message, 'error');
+            }
+        }
+
+        function viewPaymentDetails(payment) {
+            const statusText = payment.status === 'completed' ? 'Completed' :
+                payment.status === 'failed' ? 'Failed' : payment.status;
+
+            alert(`Payment Details\n\n` +
+                `Payment ID: ${payment.id}\n` +
+                `Game: ${payment.game_title}\n` +
+                `User: ${payment.user.username}\n` +
+                `Amount: ₱${payment.amount.toFixed(2)}\n` +
+                `GCash Reference: ${payment.gcash_reference_number || 'N/A'}\n` +
+                `Status: ${statusText}\n` +
+                `Created: ${new Date(payment.created_at).toLocaleString()}\n` +
+                (payment.completed_at ? `Completed: ${new Date(payment.completed_at).toLocaleString()}` : '')
+            );
+        }
+
+        // Track previous pending count for new payment detection
+        let previousPendingCount = 0;
+
+        // Update payment badge
+        function updatePaymentBadge(pendingCount) {
+            const badge = document.getElementById('payment-badge');
+            if (pendingCount > 0) {
+                badge.textContent = pendingCount;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // Check for new payments
+        async function checkForNewPayments() {
+            try {
+                const statsData = await API.getPaymentStats();
+                const currentPendingCount = statsData.payment_counts.pending;
+
+                // Update badge
+                updatePaymentBadge(currentPendingCount);
+
+                // Detect new payments
+                if (currentPendingCount > previousPendingCount) {
+                    const newPaymentsCount = currentPendingCount - previousPendingCount;
+                    showToast(`🔔 ${newPaymentsCount} new payment${newPaymentsCount > 1 ? 's' : ''} received!`, 'info');
+
+                    // Reload payments if on payments page
+                    loadPayments();
+                }
+
+                previousPendingCount = currentPendingCount;
+            } catch (error) {
+                console.error('Failed to check for new payments:', error);
+            }
+        }
+
+        // Start polling for new payments every 30 seconds
+        setInterval(checkForNewPayments, 30000);
+
+        // Initial check
+        checkForNewPayments();
+
+        // Load payments on page load
+        loadPayments();
+    </script>
+</body>
+
+</html>

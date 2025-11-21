@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test</title>
+</head>
+<body>
+    <h1>Test Page</h1>
+    <button id="testBtn">Click Me</button>
+    <div id="output"></div>
+
+    <script>
+        console.log('Test script is running!');
+
+        const btn = document.getElementById('testBtn');
+        const output = document.getElementById('output');
+
+        console.log('Button found:', !!btn);
+
+        btn.addEventListener('click', () => {
+            console.log('Button clicked!');
+            output.textContent = 'Button works! Time: ' + new Date().toLocaleTimeString();
+        });
+
+        console.log('Event listener attached');
+    </script>
+</body>
+</html>

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Games - GameManager Admin</title>
+    <link rel="stylesheet" href="../styles/admin.css">
+</head>
+
+<body>
+    <!-- Titlebar -->
+    <div class="titlebar">
+        <div class="titlebar-title">GameManager Admin Dashboard</div>
+        <div class="titlebar-controls">
+            <button class="titlebar-btn" onclick="minimizeWindow()">_</button>
+            <button class="titlebar-btn" onclick="maximizeWindow()">□</button>
+            <button class="titlebar-btn close" onclick="closeWindow()">×</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Admin Panel</h2>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-item" onclick="navigateTo('dashboard.html')">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('users.html')">
+                    <span class="nav-icon">👥</span>
+                    <span>Users</span>
+                </div>
+                <div class="nav-item active" onclick="navigateTo('games.html')">
+                    <span class="nav-icon">🎮</span>
+                    <span>Games</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('scanned-games.html')">
+                    <span class="nav-icon">🔍</span>
+                    <span>Scanned Games</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('requests.html')">
+                    <span class="nav-icon">📝</span>
+                    <span>Game Requests</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('payments.html')">
+                    <span class="nav-icon">💳</span>
+                    <span>Payments</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('files.html')">
+                    <span class="nav-icon">📁</span>
+                    <span>File Management</span>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="btn-danger" style="width: 100%;" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="content-header">
+                <div class="flex-between">
+                    <div>
+                        <h1>Game Management</h1>
+                        <p>Manage all games in the library</p>
+                    </div>
+                    <button class="btn-primary" onclick="showCreateGameModal()">➕ Add Game</button>
+                </div>
+            </div>
+
+            <div class="content-body">
+                <!-- Search -->
+                <div class="search-box">
+                    <input type="text" class="search-input" id="searchInput"
+                        placeholder="Search games by title, developer, or publisher...">
+                    <span class="search-icon">🔍</span>
+                </div>
+
+                <!-- Games Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container" id="gamesTable">
+                            <!-- Table will be loaded here -->
+                        </div>
+                        <div id="pagination"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Game Modal -->
+    <div class="modal-overlay" id="gameModal">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Add Game</h2>
+            </div>
+
+            <form id="gameForm">
+                <div class="form-group">
+                    <label class="form-label">Game Title *</label>
+                    <input type="text" class="form-input" id="modalTitle_input" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="modalDescription"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Developer</label>
+                        <input type="text" class="form-input" id="modalDeveloper">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Publisher</label>
+                        <input type="text" class="form-input" id="modalPublisher">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Genre</label>
+                        <input type="text" class="form-input" id="modalGenre">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Release Date</label>
+                        <input type="date" class="form-input" id="modalReleaseDate">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Version</label>
+                        <input type="text" class="form-input" id="modalVersion">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Price (PHP)</label>
+                    <input type="number" class="form-input" id="modalPrice" min="0" step="0.01" placeholder="0.00 (Free game)">
+                    <small style="color: #64748b; display: block; margin-top: 5px;">Set to 0 for free games</small>
+                </div>
+
+                <div class="form-row" id="filesSection">
+                    <div class="form-group">
+                        <label class="form-label">Game File * (.exe, .zip, etc.)</label>
+                        <input type="file" class="form-input" id="modalGameFile" accept=".exe,.msi,.zip,.rar,.7z">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Cover Image</label>
+                        <input type="file" class="form-input" id="modalCoverImage" accept=".png,.jpg,.jpeg,.gif,.webp">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" class="form-checkbox" id="modalIsAvailable" checked>
+                        <span class="form-label" style="display: inline;">Available for Download</span>
+                    </label>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="hideModal('gameModal')">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveGameBtn">Save Game</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../components/api.js"></script>
+    <script src="../components/ui.js"></script>
+    <script src="../components/chunked-upload-manager.js"></script>
+    <script>
+        if (!checkAuth()) {
+            navigateTo('login.html');
+        }
+
+        let currentPage = 1;
+        let currentSearch = '';
+        let editingGameId = null;
+
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', debounce(() => {
+            currentSearch = searchInput.value;
+            currentPage = 1;
+            loadGames();
+        }, 500));
+
+        async function loadGames() {
+            try {
+                showLoading('Loading games...');
+
+                const data = await API.getAllGames(currentPage, 50, currentSearch);
+
+                renderGamesTable(data.games);
+                renderPagination(data.pagination);
+
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to load games: ' + error.message, 'error');
+            }
+        }
+
+        function renderGamesTable(games) {
+            const container = document.getElementById('gamesTable');
+
+            if (!games || games.length === 0) {
+                container.innerHTML = '<p style="color: #64748b; text-align: center; padding: 40px;">No games found</p>';
+                return;
+            }
+
+            const table = createTable(
+                [
+                    {
+                        key: 'id',
+                        label: 'ID',
+                        width: '60px'
+                    },
+                    {
+                        key: 'title',
+                        label: 'Title'
+                    },
+                    {
+                        key: 'developer',
+                        label: 'Developer'
+                    },
+                    {
+                        key: 'genre',
+                        label: 'Genre',
+                        width: '120px'
+                    },
+                    {
+                        key: 'price',
+                        label: 'Price',
+                        width: '100px',
+                        format: (value) => (value && value > 0) ? `₱${value.toFixed(2)}` : 'Free'
+                    },
+                    {
+                        key: 'download_count',
+                        label: 'Downloads',
+                        width: '100px'
+                    },
+                    {
+                        key: 'user_count',
+                        label: 'Users',
+                        width: '80px'
+                    },
+                    {
+                        key: 'is_available',
+                        label: 'Status',
+                        format: (value) => value ?
+                            '<span class="badge badge-success">Available</span>' :
+                            '<span class="badge badge-danger">Unavailable</span>'
+                    }
+                ],
+                games,
+                {
+                    width: '200px',
+                    render: (game) => {
+                        const actions = document.createElement('div');
+                        actions.className = 'flex gap-1';
+
+                        const editBtn = document.createElement('button');
+                        editBtn.className = 'btn-primary btn-small';
+                        editBtn.textContent = 'Edit';
+                        editBtn.onclick = () => editGame(game);
+
+                        const toggleBtn = document.createElement('button');
+                        toggleBtn.className = game.is_available ? 'btn-warning btn-small' : 'btn-success btn-small';
+                        toggleBtn.textContent = game.is_available ? 'Disable' : 'Enable';
+                        toggleBtn.onclick = () => toggleGameAvailability(game);
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'btn-danger btn-small';
+                        deleteBtn.textContent = 'Delete';
+                        deleteBtn.onclick = () => deleteGame(game);
+
+                        actions.appendChild(editBtn);
+                        actions.appendChild(toggleBtn);
+                        actions.appendChild(deleteBtn);
+
+                        return actions;
+                    }
+                }
+            );
+
+            container.innerHTML = '';
+            container.appendChild(table);
+        }
+
+        function renderPagination(pagination) {
+            const container = document.getElementById('pagination');
+            container.innerHTML = '';
+
+            const paginationEl = createPagination(pagination, (page) => {
+                currentPage = page;
+                loadGames();
+            });
+
+            container.appendChild(paginationEl);
+        }
+
+        function showCreateGameModal() {
+            editingGameId = null;
+            document.getElementById('modalTitle').textContent = 'Add Game';
+            document.getElementById('gameForm').reset();
+            document.getElementById('filesSection').style.display = 'grid';
+            document.getElementById('modalGameFile').required = true;
+            showModal('gameModal');
+        }
+
+        function editGame(game) {
+            editingGameId = game.id;
+            document.getElementById('modalTitle').textContent = 'Edit Game';
+            document.getElementById('modalTitle_input').value = game.title;
+            document.getElementById('modalDescription').value = game.description || '';
+            document.getElementById('modalDeveloper').value = game.developer || '';
+            document.getElementById('modalPublisher').value = game.publisher || '';
+            document.getElementById('modalGenre').value = game.genre || '';
+            document.getElementById('modalVersion').value = game.version || '';
+            document.getElementById('modalPrice').value = game.price || 0;
+            document.getElementById('modalIsAvailable').checked = game.is_available;
+
+            if (game.release_date) {
+                const date = new Date(game.release_date);
+                document.getElementById('modalReleaseDate').value = date.toISOString().split('T')[0];
+            }
+
+            // Hide file uploads for editing
+            document.getElementById('filesSection').style.display = 'none';
+            document.getElementById('modalGameFile').required = false;
+
+            showModal('gameModal');
+        }
+
+        async function toggleGameAvailability(game) {
+            try {
+                showLoading('Updating game...');
+                await API.toggleGameAvailability(game.id);
+                hideLoading();
+                showToast(`Game ${game.is_available ? 'disabled' : 'enabled'} successfully`, 'success');
+                loadGames();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to update game: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteGame(game) {
+            const confirmed = await confirmAction(
+                `Are you sure you want to delete "${game.title}"? This will remove it from all user libraries and cannot be undone.`
+            );
+
+            if (!confirmed) return;
+
+            try {
+                showLoading('Deleting game...');
+                await API.deleteGame(game.id);
+                hideLoading();
+                showToast('Game deleted successfully', 'success');
+                loadGames();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to delete game: ' + error.message, 'error');
+            }
+        }
+
+        document.getElementById('gameForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            try {
+                if (editingGameId) {
+                    // Update game metadata only (blocking operation)
+                    showLoading('Updating game...');
+
+                    const gameData = {
+                        title: document.getElementById('modalTitle_input').value,
+                        description: document.getElementById('modalDescription').value,
+                        developer: document.getElementById('modalDeveloper').value,
+                        publisher: document.getElementById('modalPublisher').value,
+                        genre: document.getElementById('modalGenre').value,
+                        version: document.getElementById('modalVersion').value,
+                        price: parseFloat(document.getElementById('modalPrice').value) || 0,
+                        release_date: document.getElementById('modalReleaseDate').value,
+                        is_available: document.getElementById('modalIsAvailable').checked
+                    };
+
+                    await API.updateGame(editingGameId, gameData);
+                    hideLoading();
+                    showToast('Game updated successfully', 'success');
+                    hideModal('gameModal');
+                    loadGames();
+                } else {
+                    // Create new game with chunked upload (resume-capable)
+                    const gameFile = document.getElementById('modalGameFile').files[0];
+                    const coverImage = document.getElementById('modalCoverImage').files[0];
+
+                    if (!gameFile) {
+                        showToast('Please select a game file', 'error');
+                        return;
+                    }
+
+                    const gameData = {
+                        title: document.getElementById('modalTitle_input').value,
+                        description: document.getElementById('modalDescription').value,
+                        developer: document.getElementById('modalDeveloper').value,
+                        publisher: document.getElementById('modalPublisher').value,
+                        genre: document.getElementById('modalGenre').value,
+                        version: document.getElementById('modalVersion').value,
+                        price: parseFloat(document.getElementById('modalPrice').value) || 0,
+                        release_date: document.getElementById('modalReleaseDate').value
+                    };
+
+                    // Start chunked upload with resume capability
+                    const gameTitle = gameData.title;
+                    await chunkedUploadManager.startUpload(
+                        gameFile,
+                        gameData,
+                        coverImage,
+                        (response) => {
+                            // Upload completed successfully
+                            showToast(`Game "${gameTitle}" uploaded successfully!`, 'success');
+                            loadGames();
+                        },
+                        (error) => {
+                            // Upload failed (will be paused, user can resume)
+                            showToast(`Upload paused for "${gameTitle}". Check the upload widget to resume.`, 'warning', 5000);
+                        }
+                    );
+
+                    // Close modal immediately and show notification
+                    hideModal('gameModal');
+                    showToast(`Upload started for "${gameTitle}". You can continue working. If network fails, you can resume from the upload widget.`, 'info', 6000);
+                }
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to save game: ' + error.message, 'error');
+            }
+        });
+
+        // Load games on page load
+        loadGames();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - GameManager Admin</title>
+    <link rel="stylesheet" href="../styles/admin.css">
+</head>
+
+<body>
+    <!-- Titlebar -->
+    <div class="titlebar">
+        <div class="titlebar-title">GameManager Admin Dashboard</div>
+        <div class="titlebar-controls">
+            <button class="titlebar-btn" onclick="minimizeWindow()">_</button>
+            <button class="titlebar-btn" onclick="maximizeWindow()">□</button>
+            <button class="titlebar-btn close" onclick="closeWindow()">×</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Admin Panel</h2>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-item active" onclick="navigateTo('dashboard.html')">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('users.html')">
+                    <span class="nav-icon">👥</span>
+                    <span>Users</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('games.html')">
+                    <span class="nav-icon">🎮</span>
+                    <span>Games</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('scanned-games.html')">
+                    <span class="nav-icon">🔍</span>
+                    <span>Scanned Games</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('requests.html')">
+                    <span class="nav-icon">📝</span>
+                    <span>Game Requests</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('files.html')">
+                    <span class="nav-icon">📁</span>
+                    <span>File Management</span>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="btn-danger" style="width: 100%;" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="content-header">
+                <h1>Dashboard</h1>
+                <p>Overview of your GameManager system</p>
+            </div>
+
+            <div class="content-body">
+                <!-- Stats Grid -->
+                <div class="stats-grid" id="statsGrid">
+                    <!-- Stats will be loaded here -->
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Recent Users</h2>
+                        <button class="btn-primary btn-small" onclick="navigateTo('users.html')">View All</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container" id="recentUsersTable">
+                            <!-- Table will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Recent Games</h2>
+                        <button class="btn-primary btn-small" onclick="navigateTo('games.html')">View All</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container" id="recentGamesTable">
+                            <!-- Table will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../components/api.js"></script>
+    <script src="../components/ui.js"></script>
+    <script src="../components/chunked-upload-manager.js"></script>
+    <script>
+        // Check authentication
+        if (!checkAuth()) {
+            navigateTo('login.html');
+        }
+
+        async function loadDashboard() {
+            try {
+                showLoading('Loading dashboard...');
+
+                // Check if user is admin
+                const currentUser = await API.getCurrentUser();
+                if (!currentUser.is_admin) {
+                    showToast('Access denied: Admin privileges required', 'error');
+                    logout();
+                    return;
+                }
+
+                const stats = await API.getStatistics();
+
+                // Render stats
+                renderStats(stats);
+                renderRecentUsers(stats.recent_users);
+                renderRecentGames(stats.recent_games);
+
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to load dashboard: ' + error.message, 'error');
+                console.error('Dashboard error:', error);
+            }
+        }
+
+        function renderStats(stats) {
+            const statsGrid = document.getElementById('statsGrid');
+
+            const statCards = [
+                {
+                    label: 'Total Users',
+                    value: stats.users.total,
+                    icon: '👥',
+                    color: '#2563eb'
+                },
+                {
+                    label: 'Online Users',
+                    value: stats.users.online,
+                    icon: '🟢',
+                    color: '#10b981'
+                },
+                {
+                    label: 'Total Games',
+                    value: stats.games.total,
+                    icon: '🎮',
+                    color: '#8b5cf6'
+                },
+                {
+                    label: 'Total Downloads',
+                    value: stats.games.total_downloads,
+                    icon: '⬇️',
+                    color: '#06b6d4'
+                },
+                {
+                    label: 'Game Libraries',
+                    value: stats.engagement.total_libraries,
+                    icon: '📚',
+                    color: '#f59e0b'
+                },
+                {
+                    label: 'Total Installs',
+                    value: stats.engagement.total_installs,
+                    icon: '💾',
+                    color: '#ec4899'
+                },
+                {
+                    label: 'Total Playtime',
+                    value: stats.engagement.total_playtime_hours + 'h',
+                    icon: '⏱️',
+                    color: '#14b8a6'
+                },
+                {
+                    label: 'Pending Requests',
+                    value: stats.game_requests.pending,
+                    icon: '📝',
+                    color: '#f59e0b'
+                }
+            ];
+
+            statsGrid.innerHTML = statCards.map(stat => `
+                <div class="stat-card">
+                    <div class="stat-icon">${stat.icon}</div>
+                    <div class="stat-label">${stat.label}</div>
+                    <div class="stat-value">${stat.value}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderRecentUsers(users) {
+            const container = document.getElementById('recentUsersTable');
+
+            if (!users || users.length === 0) {
+                container.innerHTML = '<p style="color: #64748b; text-align: center; padding: 20px;">No recent users</p>';
+                return;
+            }
+
+            const table = createTable(
+                [
+                    { key: 'username', label: 'Username' },
+                    { key: 'email', label: 'Email' },
+                    { key: 'display_name', label: 'Display Name' },
+                    {
+                        key: 'is_online',
+                        label: 'Status',
+                        format: (value) => value ?
+                            '<span class="badge badge-success">Online</span>' :
+                            '<span class="badge badge-secondary">Offline</span>'
+                    },
+                    {
+                        key: 'created_at',
+                        label: 'Joined',
+                        format: (value) => formatDate(value)
+                    }
+                ],
+                users
+            );
+
+            container.innerHTML = '';
+            container.appendChild(table);
+        }
+
+        function renderRecentGames(games) {
+            const container = document.getElementById('recentGamesTable');
+
+            if (!games || games.length === 0) {
+                container.innerHTML = '<p style="color: #64748b; text-align: center; padding: 20px;">No recent games</p>';
+                return;
+            }
+
+            const table = createTable(
+                [
+                    { key: 'title', label: 'Game Title' },
+                    { key: 'developer', label: 'Developer' },
+                    { key: 'genre', label: 'Genre' },
+                    {
+                        key: 'is_available',
+                        label: 'Status',
+                        format: (value) => value ?
+                            '<span class="badge badge-success">Available</span>' :
+                            '<span class="badge badge-danger">Unavailable</span>'
+                    },
+                    {
+                        key: 'download_count',
+                        label: 'Downloads'
+                    },
+                    {
+                        key: 'created_at',
+                        label: 'Added',
+                        format: (value) => formatDate(value)
+                    }
+                ],
+                games
+            );
+
+            container.innerHTML = '';
+            container.appendChild(table);
+        }
+
+        // Load dashboard on page load
+        loadDashboard();
+
+        // Refresh stats every 30 seconds
+        setInterval(loadDashboard, 30000);
+    </script>
+</body>
+
+</html>

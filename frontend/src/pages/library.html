@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameManager - Library</title>
+    <link rel="stylesheet" href="../styles/main.css">
+</head>
+<body>
+    <!-- Title Bar -->
+    <div class="titlebar">
+        <div class="titlebar-title">GameManager</div>
+        <div class="titlebar-controls">
+            <button class="titlebar-button" id="btn-minimize">_</button>
+            <button class="titlebar-button" id="btn-maximize">□</button>
+            <button class="titlebar-button close" id="btn-close">✕</button>
+        </div>
+    </div>
+
+    <!-- Container -->
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-nav">
+                <div class="nav-item active" data-page="library">
+                    <span class="nav-icon">📚</span>
+                    <span>Library</span>
+                </div>
+                <div class="nav-item" data-page="store">
+                    <span class="nav-icon">🏪</span>
+                    <span>Store</span>
+                </div>
+                <div class="nav-item" data-page="friends">
+                    <span class="nav-icon">👥</span>
+                    <span>Friends</span>
+                </div>
+                <div class="nav-item" data-page="requests">
+                    <span class="nav-icon">📬</span>
+                    <span>Game Requests</span>
+                </div>
+                <div class="nav-item" data-page="payments">
+                    <span class="nav-icon">💳</span>
+                    <span>Payment History</span>
+                </div>
+            </div>
+            <div style="padding: 0 20px;">
+                <div class="nav-item" id="profile-nav">
+                    <span class="nav-icon">👤</span>
+                    <span id="username-display">Profile</span>
+                </div>
+                <button class="btn btn-secondary" id="logout-btn" style="width: 100%;">Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content" id="main-content">
+            <!-- Content will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Game Detail Modal -->
+    <div class="modal" id="game-modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-game-title">Game Title</h2>
+                <button class="modal-close" onclick="hideModal('game-modal')">×</button>
+            </div>
+            <div id="modal-game-content">
+                <!-- Game details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="../components/api.js"></script>
+    <script src="../components/ui.js"></script>
+    <script>
+        // Global error handler
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('Error:', msg, 'at', url, line + ':' + col);
+            console.error('Stack:', error ? error.stack : 'No stack trace');
+            return false;
+        };
+
+        console.log('Library page script starting...');
+
+        // ipcRenderer is already declared in ui.js
+        let currentUser = null;
+        let currentView = 'library';
+
+        // Initialize function
+        function initializePage() {
+            console.log('Initializing page...');
+
+            // Check authentication
+            if (!requireAuth()) {
+                console.log('Not authenticated, redirecting...');
+                return;
+            }
+
+            console.log('Setting up event listeners...');
+
+            // Sidebar navigation
+            const navItems = document.querySelectorAll('.nav-item[data-page]');
+            console.log('Found', navItems.length, 'navigation items');
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    console.log('Nav item clicked:', item.getAttribute('data-page'));
+                    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                    const page = item.getAttribute('data-page');
+                    loadPage(page);
+                });
+            });
+
+            // Logout
+            const logoutBtn = document.getElementById('logout-btn');
+            console.log('Logout button found:', !!logoutBtn);
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async () => {
+                    console.log('Logout button clicked');
+                    try {
+                        await api.logout();
+                        navigate('login');
+                    } catch (error) {
+                        showToast('Logout failed', 'error');
+                    }
+                });
+            }
+
+            // Load user data and initial page
+            loadUserData();
+            loadLibrary();
+        }
+
+        // Load user data
+        async function loadUserData() {
+            try {
+                currentUser = await api.getCurrentUser();
+                document.getElementById('username-display').textContent = currentUser.username;
+            } catch (error) {
+                console.error('Failed to load user data:', error);
+                // Only clear token on authentication errors (401, 422)
+                if (error.status === 401 || error.status === 422) {
+                    api.clearToken();
+                    showToast('Session expired. Please login again.', 'error');
+                    setTimeout(() => navigate('login'), 1000);
+                } else {
+                    // For other errors, just show the error but keep the token
+                    showToast('Failed to load user data: ' + error.message, 'error');
+                }
+            }
+        }
+
+        // Load different pages
+        async function loadPage(page) {
+            currentView = page;
+            const content = document.getElementById('main-content');
+
+            switch(page) {
+                case 'library':
+                    await loadLibrary();
+                    break;
+                case 'store':
+                    await loadStore();
+                    break;
+                case 'friends':
+                    await loadFriends();
+                    break;
+                case 'requests':
+                    await loadRequests();
+                    break;
+                case 'payments':
+                    await loadPayments();
+                    break;
+            }
+        }
+
+        // Store library data globally for filtering
+        let libraryData = [];
+
+        // Load Library
+        async function loadLibrary(searchQuery = '') {
+            const content = document.getElementById('main-content');
+            content.innerHTML = `
+                <h1>My Library</h1>
+                <div style="margin-bottom: 20px;">
+                    <input type="text" id="library-search" placeholder="Search your library by title, developer, publisher, or genre..."
+                           style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text-primary); font-size: 14px;"
+                           value="${searchQuery}">
+                </div>
+                <div id="library-games" class="games-grid"></div>
+            `;
+
+            // Add search event listener
+            const searchInput = document.getElementById('library-search');
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    loadLibrary(e.target.value);
+                }, 300);
+            });
+
+            try {
+                showLoading();
+
+                // Load library data if not already loaded or if no search
+                if (libraryData.length === 0 || !searchQuery) {
+                    libraryData = await api.getLibrary();
+                }
+
+                hideLoading();
+
+                const gamesGrid = document.getElementById('library-games');
+
+                if (libraryData.length === 0) {
+                    gamesGrid.innerHTML = '<p style="color: var(--text-secondary);">No games in your library. Visit the store to add games!</p>';
+                    return;
+                }
+
+                // Filter library based on search query
+                let filteredLibrary = libraryData;
+                if (searchQuery) {
+                    const query = searchQuery.toLowerCase();
+                    filteredLibrary = libraryData.filter(userGame => {
+                        const game = userGame.game;
+                        return (
+                            (game.title && game.title.toLowerCase().includes(query)) ||
+                            (game.developer && game.developer.toLowerCase().includes(query)) ||
+                            (game.publisher && game.publisher.toLowerCase().includes(query)) ||
+                            (game.genre && game.genre.toLowerCase().includes(query))
+                        );
+                    });
+                }
+
+                if (filteredLibrary.length === 0) {
+                    gamesGrid.innerHTML = '<p style="color: var(--text-secondary);">No games found matching your search.</p>';
+                    return;
+                }
+
+                gamesGrid.innerHTML = filteredLibrary.map(userGame => {
+                    const game = userGame.game;
+                    const coverUrl = game.cover_image ? `http://localhost:5000/api/games/${game.id}/cover` : '';
+                    const placeholderSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='280'%3E%3Crect width='200' height='280' fill='%232a475e'/%3E%3Ctext x='50%25' y='50%25' fill='%2364748b' font-size='16' text-anchor='middle' dy='.3em'%3E${encodeURIComponent(game.title.substring(0, 20))}%3C/text%3E%3C/svg%3E`;
+
+                    return `
+                        <div class="game-card" onclick="openGameDetail(${game.id}, true)">
+                            <img src="${coverUrl || placeholderSvg}"
+                                 class="game-cover"
+                                 alt="${game.title}"
+                                 onerror="this.src='${placeholderSvg}'">
+                            <div class="game-info">
+                                <div class="game-title">${game.title}</div>
+                                <div class="game-meta">
+                                    ${userGame.is_installed ? '✓ Installed' : '⬇ Not installed'}
+                                    ${userGame.playtime_minutes > 0 ? ` • ${formatPlaytime(userGame.playtime_minutes)}` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                hideLoading();
+                console.error('Failed to load library:', error);
+                // Only clear token on authentication errors (401, 422)
+                if (error.status === 401 || error.status === 422) {
+                    api.clearToken();
+                    showToast('Session expired. Please login again.', 'error');
+                    setTimeout(() => navigate('login'), 1000);
+                } else {
+                    showToast('Failed to load library', 'error');
+                }
+            }
+        }
+
+        // Load Store
+        async function loadStore(searchQuery = '') {
+            const content = document.getElementById('main-content');
+            content.innerHTML = `
+                <div class="flex-between mb-2">
+                    <h1>Game Store</h1>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <input type="text" id="store-search" placeholder="Search games by title, developer, publisher, or genre..."
+                           style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text-primary); font-size: 14px;"
+                           value="${searchQuery}">
+                </div>
+                <div id="store-games" class="games-grid"></div>
+            `;
+
+            // Add search event listener
+            const searchInput = document.getElementById('store-search');
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    loadStore(e.target.value);
+                }, 300);
+            });
+
+            try {
+                showLoading();
+                const games = await api.getGames(searchQuery);
+                const library = await api.getLibrary();
+                const libraryIds = library.map(ug => ug.game_id);
+                hideLoading();
+
+                const gamesGrid = document.getElementById('store-games');
+
+                if (games.length === 0) {
+                    gamesGrid.innerHTML = '<p style="color: var(--text-secondary);">No games available yet.</p>';
+                    return;
+                }
+
+                gamesGrid.innerHTML = games.map(game => {
+                    const inLibrary = libraryIds.includes(game.id);
+                    const coverUrl = game.cover_image ? `http://localhost:5000/api/games/${game.id}/cover` : '';
+                    const placeholderSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='280'%3E%3Crect width='200' height='280' fill='%232a475e'/%3E%3Ctext x='50%25' y='50%25' fill='%2364748b' font-size='16' text-anchor='middle' dy='.3em'%3E${encodeURIComponent(game.title.substring(0, 20))}%3C/text%3E%3C/svg%3E`;
+
+                    const priceText = (game.price && game.price > 0) ? `₱${game.price.toFixed(2)}` : 'Free';
+                    const statusBadge = inLibrary
+                        ? '<div style="color: var(--success); font-size: 12px; font-weight: bold;">✓ In Library</div>'
+                        : `<div style="color: var(--primary); font-size: 14px; font-weight: bold;">${priceText}</div>`;
+
+                    return `
+                        <div class="game-card" onclick="openGameDetail(${game.id}, ${inLibrary})">
+                            <img src="${coverUrl || placeholderSvg}"
+                                 class="game-cover"
+                                 alt="${game.title}"
+                                 onerror="this.src='${placeholderSvg}'">
+                            <div class="game-info">
+                                <div class="game-title">${game.title}</div>
+                                <div class="game-meta">${game.genre || 'Game'}</div>
+                                ${statusBadge}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to load store', 'error');
+            }
+        }
+
+        // Load Friends
+        async function loadFriends() {
+            const content = document.getElementById('main-content');
+            content.innerHTML = `
+                <div class="flex-between mb-2">
+                    <h1>Friends</h1>
+                    <button class="btn btn-primary" onclick="showAddFriend()">Add Friend</button>
+                </div>
+                <div id="friends-list" class="friends-list"></div>
+                <h2 class="mt-3 mb-2">Friend Requests</h2>
+                <div id="friend-requests"></div>
+            `;
+
+            try {
+                showLoading();
+                const [friends, requests] = await Promise.all([
+                    api.getFriends(),
+                    api.getFriendRequests()
+                ]);
+                hideLoading();
+
+                const friendsList = document.getElementById('friends-list');
+                const requestsList = document.getElementById('friend-requests');
+
+                if (friends.length === 0) {
+                    friendsList.innerHTML = '<p style="color: var(--text-secondary);">No friends yet. Add some!</p>';
+                } else {
+                    friendsList.innerHTML = friends.map(friend => `
+                        <div class="friend-item">
+                            <div class="friend-avatar"></div>
+                            <div class="friend-info">
+                                <div class="friend-name">${friend.display_name}</div>
+                                <div class="friend-status ${friend.is_online ? 'online' : ''}">
+                                    ${friend.is_online ? 'Online' : 'Offline'}
+                                </div>
+                            </div>
+                            <button class="btn btn-danger" onclick="removeFriend(${friend.id})">Remove</button>
+                        </div>
+                    `).join('');
+                }
+
+                if (requests.length === 0) {
+                    requestsList.innerHTML = '<p style="color: var(--text-secondary);">No pending requests</p>';
+                } else {
+                    requestsList.innerHTML = requests.map(req => `
+                        <div class="friend-item">
+                            <div class="friend-avatar"></div>
+                            <div class="friend-info">
+                                <div class="friend-name">${req.user.display_name}</div>
+                                <div class="friend-status">Friend request</div>
+                            </div>
+                            <div class="flex gap-1">
+                                <button class="btn btn-success" onclick="acceptRequest(${req.id})">Accept</button>
+                                <button class="btn btn-danger" onclick="rejectRequest(${req.id})">Reject</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to load friends', 'error');
+            }
+        }
+
+        // Load Game Requests
+        async function loadRequests() {
+            const content = document.getElementById('main-content');
+            content.innerHTML = `
+                <div class="flex-between mb-2">
+                    <h1>Game Requests</h1>
+                    <button class="btn btn-primary" onclick="showRequestGame()">Request a Game</button>
+                </div>
+                <div id="requests-list"></div>
+            `;
+
+            try {
+                showLoading();
+                const requests = await api.getGameRequests();
+                hideLoading();
+
+                const requestsList = document.getElementById('requests-list');
+
+                if (requests.length === 0) {
+                    requestsList.innerHTML = '<p style="color: var(--text-secondary);">No game requests yet.</p>';
+                } else {
+                    requestsList.innerHTML = requests.map(req => `
+                        <div class="card">
+                            <div class="flex-between">
+                                <div>
+                                    <h3>${req.game_title}</h3>
+                                    <p style="color: var(--text-secondary); margin-top: 5px;">${req.description || 'No description'}</p>
+                                </div>
+                                <div>
+                                    <span class="btn btn-secondary" style="cursor: default;">
+                                        ${req.status}
+                                    </span>
+                                </div>
+                            </div>
+                            <div style="margin-top: 10px; font-size: 12px; color: var(--text-secondary);">
+                                Requested ${formatDate(req.created_at)}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to load requests', 'error');
+            }
+        }
+
+        // Load Payment History
+        async function loadPayments() {
+            const content = document.getElementById('main-content');
+            content.innerHTML = `
+                <div class="flex-between mb-2">
+                    <h1>Payment History</h1>
+                </div>
+                <div id="payments-list"></div>
+            `;
+
+            try {
+                showLoading();
+                const response = await fetch('http://localhost:5000/api/payments/history', {
+                    headers: {
+                        'Authorization': `Bearer ${api.getToken()}`
+                    }
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                const paymentsList = document.getElementById('payments-list');
+
+                if (!data.payments || data.payments.length === 0) {
+                    paymentsList.innerHTML = '<p style="color: var(--text-secondary);">No payment history yet.</p>';
+                } else {
+                    paymentsList.innerHTML = data.payments.map(payment => {
+                        let statusColor = 'var(--text-secondary)';
+                        let statusText = payment.status;
+
+                        if (payment.status === 'completed') {
+                            statusColor = 'var(--success)';
+                            statusText = 'Completed ✓';
+                        } else if (payment.status === 'pending_verification') {
+                            statusColor = 'var(--warning)';
+                            statusText = 'Pending Verification';
+                        } else if (payment.status === 'failed') {
+                            statusColor = 'var(--danger)';
+                            statusText = 'Failed';
+                        }
+
+                        return `
+                            <div class="card" style="margin-bottom: 15px;">
+                                <div class="flex-between">
+                                    <div style="flex: 1;">
+                                        <h3 style="margin-bottom: 5px;">${payment.game_title}</h3>
+                                        <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 10px;">
+                                            Payment ID: ${payment.id}
+                                        </div>
+                                        ${payment.gcash_reference_number ? `
+                                            <div style="color: var(--text-secondary); font-size: 13px;">
+                                                GCash Ref: ${payment.gcash_reference_number}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 24px; font-weight: bold; color: var(--primary); margin-bottom: 5px;">
+                                            ₱${payment.amount.toFixed(2)}
+                                        </div>
+                                        <div style="color: ${statusColor}; font-weight: bold; font-size: 14px;">
+                                            ${statusText}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-secondary);">
+                                    ${formatDate(payment.created_at)}
+                                    ${payment.completed_at ? ` • Completed: ${formatDate(payment.completed_at)}` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to load payment history', 'error');
+            }
+        }
+
+        // Game detail modal
+        async function openGameDetail(gameId, inLibrary) {
+            try {
+                showLoading();
+                const game = await api.getGame(gameId);
+                let userGame = null;
+
+                if (inLibrary) {
+                    const library = await api.getLibrary();
+                    userGame = library.find(ug => ug.game_id === gameId);
+                }
+
+                hideLoading();
+
+                document.getElementById('modal-game-title').textContent = game.title;
+                const modalCoverUrl = game.cover_image ? `http://localhost:5000/api/games/${game.id}/cover` : '';
+
+                const priceDisplay = (game.price && game.price > 0) ? `₱${game.price.toFixed(2)}` : 'Free';
+
+                document.getElementById('modal-game-content').innerHTML = `
+                    ${modalCoverUrl ? `
+                        <div style="margin-bottom: 20px;">
+                            <img src="${modalCoverUrl}"
+                                 style="width: 100%; max-height: 400px; object-fit: cover; border-radius: 4px;"
+                                 alt="${game.title}"
+                                 onerror="this.style.display='none'">
+                        </div>
+                    ` : ''}
+                    <p style="color: var(--text-secondary); margin-bottom: 20px;">${game.description || 'No description available.'}</p>
+                    <div class="grid" style="grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;">
+                        <div><strong>Genre:</strong> ${game.genre || 'N/A'}</div>
+                        <div><strong>Developer:</strong> ${game.developer || 'N/A'}</div>
+                        <div><strong>Publisher:</strong> ${game.publisher || 'N/A'}</div>
+                        <div><strong>Size:</strong> ${game.file_size ? formatFileSize(game.file_size) : 'N/A'}</div>
+                        <div><strong>Price:</strong> <span style="color: ${game.price > 0 ? 'var(--primary)' : 'var(--success)'}; font-weight: bold;">${priceDisplay}</span></div>
+                    </div>
+                    ${inLibrary ? `
+                        ${userGame && userGame.is_installed ? `
+                            <button class="btn btn-primary" onclick="launchGame(${gameId})">Play Now</button>
+                        ` : `
+                            <button class="btn btn-success" onclick="downloadGame(${gameId})">Download & Install</button>
+                        `}
+                        <button class="btn btn-danger" onclick="removeFromLibrary(${gameId})">Remove from Library</button>
+                    ` : `
+                        ${game.price > 0 ? `
+                            <button class="btn btn-primary" onclick="purchaseGame(${gameId}, ${game.price})">Purchase for ${priceDisplay}</button>
+                        ` : `
+                            <button class="btn btn-primary" onclick="addGameToLibrary(${gameId})">Add to Library (Free)</button>
+                        `}
+                    `}
+                `;
+
+                showModal('game-modal');
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to load game details', 'error');
+            }
+        }
+
+        // Game actions
+        async function addGameToLibrary(gameId) {
+            try {
+                await api.addToLibrary(gameId);
+                showToast('Added to library!', 'success');
+                hideModal('game-modal');
+                if (currentView === 'store') loadStore();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function purchaseGame(gameId, price) {
+            try {
+                hideModal('game-modal');
+                showLoading('Initiating payment...');
+
+                // Create payment
+                const response = await fetch('http://localhost:5000/api/payments/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${api.getToken()}`
+                    },
+                    body: JSON.stringify({ game_id: gameId })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Payment initiation failed');
+                }
+
+                hideLoading();
+
+                // Show GCash payment modal
+                showGCashPaymentModal(data.payment, data.instructions);
+
+            } catch (error) {
+                hideLoading();
+                showToast(error.message, 'error');
+            }
+        }
+
+        function showGCashPaymentModal(payment, instructions) {
+            const qrCodeUrl = `http://localhost:5000/api/payments/${payment.id}/qrcode`;
+
+            const modalContent = `
+                <div style="padding: 20px;">
+                    <h2 style="margin-bottom: 20px;">GCash Payment</h2>
+                    <div style="background: var(--surface); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="margin-bottom: 15px;">
+                            <strong>Amount to Pay:</strong>
+                            <div style="font-size: 32px; color: var(--primary); font-weight: bold;">₱${payment.amount.toFixed(2)}</div>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <strong>Payment ID:</strong> ${payment.id}
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <strong>Game:</strong> ${payment.game_title}
+                        </div>
+                    </div>
+
+                    <!-- QR Code Section -->
+                    <div style="background: var(--surface); padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                        <h3 style="margin-bottom: 15px;">Scan QR Code to Pay</h3>
+                        <div style="background: white; padding: 15px; border-radius: 8px; display: inline-block;">
+                            <img src="${qrCodeUrl}"
+                                 alt="GCash QR Code"
+                                 style="width: 250px; height: 250px; display: block;"
+                                 onerror="this.parentElement.innerHTML='<p style=color:red>Failed to load QR code</p>'">
+                        </div>
+                        <p style="margin-top: 15px; color: var(--text-secondary); font-size: 14px;">
+                            Scan this QR code with your GCash app to pay
+                        </p>
+                    </div>
+
+                    <div style="background: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong>How to Pay:</strong>
+                        <ol style="margin: 10px 0 0 20px; padding: 0;">
+                            <li>Open your GCash app</li>
+                            <li>Tap "Scan QR" and scan the QR code above</li>
+                            <li><strong>Enter the exact amount: ₱${payment.amount.toFixed(2)}</strong></li>
+                            <li>Complete the payment in your GCash app</li>
+                            <li>After payment, copy your GCash reference number from the receipt</li>
+                            <li>Paste the reference number below and click "Submit Payment"</li>
+                            <li>Wait for admin verification to receive your game</li>
+                        </ol>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">GCash Reference Number:</label>
+                        <input type="text" id="gcashReference" class="form-input" placeholder="Enter your GCash reference number after payment" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text-primary);">
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" onclick="hideModal('gcash-modal')" style="flex: 1;">Cancel</button>
+                        <button class="btn btn-primary" onclick="submitGCashPayment(${payment.id})" style="flex: 1;">Submit Payment</button>
+                    </div>
+                </div>
+            `;
+
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('gcash-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'gcash-modal';
+                modal.className = 'modal';
+                modal.innerHTML = `<div class="modal-content" style="max-width: 600px;"></div>`;
+                document.body.appendChild(modal);
+            }
+
+            modal.querySelector('.modal-content').innerHTML = modalContent;
+            showModal('gcash-modal');
+        }
+
+        async function submitGCashPayment(paymentId) {
+            const referenceNumber = document.getElementById('gcashReference').value.trim();
+
+            if (!referenceNumber) {
+                showToast('Please enter the GCash reference number', 'error');
+                return;
+            }
+
+            try {
+                showLoading('Submitting payment...');
+
+                const response = await fetch(`http://localhost:5000/api/payments/${paymentId}/confirm`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${api.getToken()}`
+                    },
+                    body: JSON.stringify({ reference_number: referenceNumber })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Payment confirmation failed');
+                }
+
+                hideLoading();
+                hideModal('gcash-modal');
+                showToast('Payment submitted! Waiting for admin verification. You will be notified once approved.', 'success', 5000);
+
+                // Reload store
+                if (currentView === 'store') loadStore();
+
+            } catch (error) {
+                hideLoading();
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function removeFromLibrary(gameId) {
+            if (!confirm('Remove this game from your library?')) return;
+            try {
+                await api.removeFromLibrary(gameId);
+                showToast('Removed from library', 'success');
+                hideModal('game-modal');
+                if (currentView === 'library') loadLibrary();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function downloadGame(gameId) {
+            try {
+                showToast('Download started...', 'info');
+                const response = await api.downloadGame(gameId);
+                const blob = await response.blob();
+
+                // Save file to downloads folder
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `game_${gameId}.exe`;
+                a.click();
+
+                showToast('Download complete!', 'success');
+
+                // Update as downloaded
+                await api.updateLibraryGame(gameId, { download_progress: 100 });
+            } catch (error) {
+                showToast('Download failed', 'error');
+            }
+        }
+
+        function launchGame(gameId) {
+            showToast('Game launch feature coming soon!', 'info');
+            // ipcRenderer.send('launch-game', gamePath);
+        }
+
+        // Friend actions
+        function showAddFriend() {
+            const query = prompt('Enter username to add:');
+            if (!query) return;
+
+            searchAndAddFriend(query);
+        }
+
+        async function searchAndAddFriend(query) {
+            try {
+                const users = await api.searchUsers(query);
+                if (users.length === 0) {
+                    showToast('User not found', 'error');
+                    return;
+                }
+
+                // For simplicity, add the first result
+                await api.sendFriendRequest(users[0].id);
+                showToast('Friend request sent!', 'success');
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function acceptRequest(requestId) {
+            try {
+                await api.acceptFriendRequest(requestId);
+                showToast('Friend request accepted!', 'success');
+                loadFriends();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function rejectRequest(requestId) {
+            try {
+                await api.rejectFriendRequest(requestId);
+                showToast('Friend request rejected', 'success');
+                loadFriends();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function removeFriend(friendId) {
+            if (!confirm('Remove this friend?')) return;
+            try {
+                await api.removeFriend(friendId);
+                showToast('Friend removed', 'success');
+                loadFriends();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // Game request
+        function showRequestGame() {
+            const title = prompt('Game title:');
+            if (!title) return;
+
+            const description = prompt('Description (optional):');
+
+            requestGame(title, description);
+        }
+
+        async function requestGame(title, description) {
+            try {
+                await api.createGameRequest(title, description);
+                showToast('Game request submitted!', 'success');
+                loadRequests();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // Initialize when page loads
+        console.log('Calling initializePage()...');
+        initializePage();
+    </script>
+</body>
+</html>

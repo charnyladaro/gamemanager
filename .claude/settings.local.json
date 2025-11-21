@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:win:*)",
+      "Bash(npx electron-packager:*)",
+      "Bash(pip install:*)",
+      "Bash(timeout 5 python:*)",
+      "Bash(exit 0)",
+      "Bash(findstr:*)",
+      "Bash(python run.py:*)",
+      "Bash(timeout 3 python:*)",
+      "Bash(curl:*)",
+      "Bash(python:*)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)",
+      "Bash(timeout 2 cmd:*)",
+      "Bash(npx electron-builder --version)",
+      "Bash(timeout 30 cmd:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,39 @@
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary Files
+*.tmp
+*.bak
+*.cache
+
+# Logs
+*.log
+
+# Large Binary Files (use Git LFS or GitHub Releases instead)
+*.exe
+*.msi
+*.zip
+*.rar
+*.7z
+
+# Keep structure but ignore actual downloads
+downloads/*
+!downloads/.gitkeep
+
+# Node modules (if you add any build tools later)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment files
+.env
+.env.local

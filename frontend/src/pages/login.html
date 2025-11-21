@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameManager - Login</title>
+    <link rel="stylesheet" href="../styles/main.css">
+</head>
+<body>
+    <!-- Title Bar -->
+    <div class="titlebar">
+        <div class="titlebar-title">GameManager</div>
+        <div class="titlebar-controls">
+            <button class="titlebar-button" id="btn-minimize">_</button>
+            <button class="titlebar-button" id="btn-maximize">□</button>
+            <button class="titlebar-button close" id="btn-close">✕</button>
+        </div>
+    </div>
+
+    <!-- Auth Container -->
+    <div class="auth-container">
+        <div class="auth-box">
+            <h1 class="auth-title">Welcome Back</h1>
+            <p class="auth-subtitle">Sign in to continue</p>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-input" id="username" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-input" id="password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;">
+                    Sign In
+                </button>
+
+                <div class="text-center mt-2">
+                    <a href="#" id="show-register" style="color: var(--accent); text-decoration: none;">
+                        Don't have an account? Register
+                    </a>
+                </div>
+            </form>
+
+            <!-- Register Form (hidden by default) -->
+            <form id="register-form" class="hidden">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-input" id="reg-username" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" id="reg-email" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-input" id="reg-password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;">
+                    Create Account
+                </button>
+
+                <div class="text-center mt-2">
+                    <a href="#" id="show-login" style="color: var(--accent); text-decoration: none;">
+                        Already have an account? Sign in
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../components/api.js"></script>
+    <script src="../components/ui.js"></script>
+    <script>
+        // Global error handler
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('Error:', msg, 'at', url, line + ':' + col);
+            console.error('Stack:', error ? error.stack : 'No stack trace');
+            return false;
+        };
+
+        console.log('Login page script starting...');
+
+        // ipcRenderer is already declared in ui.js (loaded above)
+
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const showRegisterBtn = document.getElementById('show-register');
+        const showLoginBtn = document.getElementById('show-login');
+
+        console.log('Forms found:', !!loginForm, !!registerForm);
+
+        // Toggle forms
+        showRegisterBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginForm.classList.add('hidden');
+            registerForm.classList.remove('hidden');
+            document.querySelector('.auth-title').textContent = 'Create Account';
+            document.querySelector('.auth-subtitle').textContent = 'Join the community';
+        });
+
+        showLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+            document.querySelector('.auth-title').textContent = 'Welcome Back';
+            document.querySelector('.auth-subtitle').textContent = 'Sign in to continue';
+        });
+
+        // Login
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                showLoading();
+                await api.login(username, password);
+                hideLoading();
+                showToast('Login successful!', 'success');
+                navigate('library');
+            } catch (error) {
+                hideLoading();
+                showToast(error.message || 'Login failed', 'error');
+            }
+        });
+
+        // Register
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+
+            try {
+                showLoading();
+                await api.register(username, email, password);
+                hideLoading();
+                showToast('Account created successfully!', 'success');
+                navigate('library');
+            } catch (error) {
+                hideLoading();
+                showToast(error.message || 'Registration failed', 'error');
+            }
+        });
+
+        // Auto-login if token exists
+        if (isAuthenticated()) {
+            navigate('library');
+        }
+    </script>
+</body>
+</html>

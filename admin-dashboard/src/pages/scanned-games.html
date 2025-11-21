@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanned Games - GameManager Admin</title>
+    <link rel="stylesheet" href="../styles/admin.css">
+</head>
+<body>
+    <!-- Titlebar -->
+    <div class="titlebar">
+        <div class="titlebar-title">GameManager Admin Dashboard</div>
+        <div class="titlebar-controls">
+            <button class="titlebar-btn" onclick="minimizeWindow()">_</button>
+            <button class="titlebar-btn" onclick="maximizeWindow()">□</button>
+            <button class="titlebar-btn close" onclick="closeWindow()">×</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Admin Panel</h2>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-item" onclick="navigateTo('dashboard.html')">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('users.html')">
+                    <span class="nav-icon">👥</span>
+                    <span>Users</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('games.html')">
+                    <span class="nav-icon">🎮</span>
+                    <span>Games</span>
+                </div>
+                <div class="nav-item active" onclick="navigateTo('scanned-games.html')">
+                    <span class="nav-icon">🔍</span>
+                    <span>Scanned Games</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('requests.html')">
+                    <span class="nav-icon">📝</span>
+                    <span>Game Requests</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('files.html')">
+                    <span class="nav-icon">📁</span>
+                    <span>File Management</span>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="btn-danger" style="width: 100%;" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="content-header">
+                <div class="flex-between">
+                    <div>
+                        <h1>Scanned Games</h1>
+                        <p>Auto-detected games from scanned_games folder</p>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-secondary" onclick="fetchAllCovers()">🖼️ Fetch All Covers</button>
+                        <button class="btn-primary" onclick="scanNow()">🔄 Scan Now</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-body">
+                <!-- Filter Tabs -->
+                <div class="tabs" style="margin-bottom: 20px;">
+                    <button class="tab-btn active" onclick="filterByStatus(null)">All</button>
+                    <button class="tab-btn" onclick="filterByStatus('pending')">Pending</button>
+                    <button class="tab-btn" onclick="filterByStatus('processed')">Added to Library</button>
+                </div>
+
+                <!-- Search -->
+                <div class="search-box">
+                    <input
+                        type="text"
+                        class="search-input"
+                        id="searchInput"
+                        placeholder="Search by filename or title..."
+                    >
+                    <span class="search-icon">🔍</span>
+                </div>
+
+                <!-- Scanned Games Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container" id="scannedGamesTable">
+                            <!-- Table will be loaded here -->
+                        </div>
+                        <div id="pagination"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Title Modal -->
+    <div class="modal-overlay" id="editTitleModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Game Title</h2>
+            </div>
+
+            <form id="editTitleForm">
+                <div class="form-group">
+                    <label class="form-label">Suggested Title</label>
+                    <input type="text" class="form-input" id="editTitleInput" required>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="hideModal('editTitleModal')">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Title</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add to Library Modal -->
+    <div class="modal-overlay" id="addToLibraryModal">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Add Game to Library</h2>
+            </div>
+
+            <form id="addToLibraryForm">
+                <div class="form-group">
+                    <label class="form-label">Game Title *</label>
+                    <input type="text" class="form-input" id="libraryTitle" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="libraryDescription"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Developer</label>
+                        <input type="text" class="form-input" id="libraryDeveloper">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Publisher</label>
+                        <input type="text" class="form-input" id="libraryPublisher">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Genre</label>
+                        <input type="text" class="form-input" id="libraryGenre">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Release Date</label>
+                        <input type="date" class="form-input" id="libraryReleaseDate">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Version</label>
+                        <input type="text" class="form-input" id="libraryVersion">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" class="form-checkbox" id="libraryIsAvailable" checked>
+                        <span class="form-label" style="display: inline;">Available for Download</span>
+                    </label>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="hideModal('addToLibraryModal')">Cancel</button>
+                    <button type="submit" class="btn-primary">Add to Library</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../components/api.js"></script>
+    <script src="../components/ui.js"></script>
+    <script>
+        if (!checkAuth()) {
+            navigateTo('login.html');
+        }
+
+        let currentPage = 1;
+        let currentSearch = '';
+        let currentStatus = null;
+        let editingScannedGameId = null;
+        let addingScannedGameId = null;
+
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', debounce(() => {
+            currentSearch = searchInput.value;
+            currentPage = 1;
+            loadScannedGames();
+        }, 500));
+
+        async function loadScannedGames() {
+            try {
+                showLoading('Loading scanned games...');
+
+                const data = await API.getScannedGames(currentPage, 50, currentSearch, currentStatus);
+
+                renderScannedGamesTable(data.scanned_games);
+                renderPagination(data.pagination);
+
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to load scanned games: ' + error.message, 'error');
+            }
+        }
+
+        function renderScannedGamesTable(scannedGames) {
+            const container = document.getElementById('scannedGamesTable');
+
+            if (!scannedGames || scannedGames.length === 0) {
+                container.innerHTML = '<p style="color: #64748b; text-align: center; padding: 40px;">No scanned games found. Click "Scan Now" to detect files.</p>';
+                return;
+            }
+
+            const table = createTable(
+                [
+                    {
+                        key: 'cover_image',
+                        label: 'Cover',
+                        width: '80px',
+                        format: (value) => {
+                            if (value) {
+                                return `<img src="http://localhost:5000/api/admin/covers/${encodeURIComponent(value)}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22%3E%3Crect fill=%22%23334155%22 width=%2260%22 height=%2260%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 fill=%22%2364748b%22 font-size=%2220%22 text-anchor=%22middle%22 dy=%22.3em%22%3E%3F%3C/text%3E%3C/svg%3E'">`;
+                            } else {
+                                return `<div style="width: 60px; height: 60px; background: #334155; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 20px;">?</div>`;
+                            }
+                        }
+                    },
+                    {
+                        key: 'filename',
+                        label: 'Filename',
+                        width: '200px'
+                    },
+                    {
+                        key: 'suggested_title',
+                        label: 'Suggested Title'
+                    },
+                    {
+                        key: 'file_size',
+                        label: 'Size',
+                        width: '100px',
+                        format: (value) => formatFileSize(value)
+                    },
+                    {
+                        key: 'file_extension',
+                        label: 'Type',
+                        width: '80px',
+                        format: (value) => value ? `.${value}` : '-'
+                    },
+                    {
+                        key: 'detected_at',
+                        label: 'Detected',
+                        width: '120px',
+                        format: (value) => new Date(value).toLocaleDateString()
+                    },
+                    {
+                        key: 'is_processed',
+                        label: 'Status',
+                        width: '100px',
+                        format: (value) => value ?
+                            '<span class="badge badge-success">Added</span>' :
+                            '<span class="badge badge-warning">Pending</span>'
+                    }
+                ],
+                scannedGames,
+                {
+                    width: '280px',
+                    render: (scannedGame) => {
+                        const actions = document.createElement('div');
+                        actions.className = 'flex gap-1';
+                        actions.style.flexWrap = 'wrap';
+
+                        if (!scannedGame.is_processed) {
+                            if (!scannedGame.cover_image) {
+                                const fetchCoverBtn = document.createElement('button');
+                                fetchCoverBtn.className = 'btn-secondary btn-small';
+                                fetchCoverBtn.textContent = '🖼️ Get Cover';
+                                fetchCoverBtn.onclick = () => fetchCover(scannedGame);
+                                actions.appendChild(fetchCoverBtn);
+                            }
+
+                            const editBtn = document.createElement('button');
+                            editBtn.className = 'btn-secondary btn-small';
+                            editBtn.textContent = 'Edit Title';
+                            editBtn.onclick = () => editTitle(scannedGame);
+
+                            const addBtn = document.createElement('button');
+                            addBtn.className = 'btn-primary btn-small';
+                            addBtn.textContent = 'Add to Library';
+                            addBtn.onclick = () => showAddToLibrary(scannedGame);
+
+                            const deleteBtn = document.createElement('button');
+                            deleteBtn.className = 'btn-danger btn-small';
+                            deleteBtn.textContent = 'Delete';
+                            deleteBtn.onclick = () => deleteScannedGame(scannedGame);
+
+                            actions.appendChild(editBtn);
+                            actions.appendChild(addBtn);
+                            actions.appendChild(deleteBtn);
+                        } else {
+                            const viewBtn = document.createElement('button');
+                            viewBtn.className = 'btn-secondary btn-small';
+                            viewBtn.textContent = 'View in Library';
+                            viewBtn.onclick = () => navigateTo('games.html');
+                            actions.appendChild(viewBtn);
+                        }
+
+                        return actions;
+                    }
+                }
+            );
+
+            container.innerHTML = '';
+            container.appendChild(table);
+        }
+
+        function renderPagination(pagination) {
+            const container = document.getElementById('pagination');
+            container.innerHTML = '';
+
+            const paginationEl = createPagination(pagination, (page) => {
+                currentPage = page;
+                loadScannedGames();
+            });
+
+            container.appendChild(paginationEl);
+        }
+
+        function filterByStatus(status) {
+            currentStatus = status;
+            currentPage = 1;
+
+            // Update active tab
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            loadScannedGames();
+        }
+
+        async function scanNow() {
+            try {
+                showLoading('Scanning folder...');
+                const result = await API.scanGamesFolder();
+                hideLoading();
+                showToast(`Scan complete! Found ${result.new_files} new file(s)`, 'success');
+                loadScannedGames();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to scan folder: ' + error.message, 'error');
+            }
+        }
+
+        function editTitle(scannedGame) {
+            editingScannedGameId = scannedGame.id;
+            document.getElementById('editTitleInput').value = scannedGame.suggested_title;
+            showModal('editTitleModal');
+        }
+
+        document.getElementById('editTitleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            try {
+                showLoading('Updating title...');
+                const newTitle = document.getElementById('editTitleInput').value;
+                await API.updateScannedGameTitle(editingScannedGameId, newTitle);
+                hideLoading();
+                showToast('Title updated successfully', 'success');
+                hideModal('editTitleModal');
+                loadScannedGames();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to update title: ' + error.message, 'error');
+            }
+        });
+
+        function showAddToLibrary(scannedGame) {
+            addingScannedGameId = scannedGame.id;
+            document.getElementById('libraryTitle').value = scannedGame.suggested_title;
+            document.getElementById('libraryDescription').value = '';
+            document.getElementById('libraryDeveloper').value = '';
+            document.getElementById('libraryPublisher').value = '';
+            document.getElementById('libraryGenre').value = '';
+            document.getElementById('libraryReleaseDate').value = '';
+            document.getElementById('libraryVersion').value = '';
+            document.getElementById('libraryIsAvailable').checked = true;
+            showModal('addToLibraryModal');
+        }
+
+        document.getElementById('addToLibraryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            try {
+                showLoading('Adding to library...');
+
+                const metadata = {
+                    title: document.getElementById('libraryTitle').value,
+                    description: document.getElementById('libraryDescription').value,
+                    developer: document.getElementById('libraryDeveloper').value,
+                    publisher: document.getElementById('libraryPublisher').value,
+                    genre: document.getElementById('libraryGenre').value,
+                    release_date: document.getElementById('libraryReleaseDate').value,
+                    version: document.getElementById('libraryVersion').value,
+                    is_available: document.getElementById('libraryIsAvailable').checked
+                };
+
+                const result = await API.addScannedGameToLibrary(addingScannedGameId, metadata);
+                hideLoading();
+                showToast(`Game "${result.game.title}" added to library successfully!`, 'success');
+                hideModal('addToLibraryModal');
+                loadScannedGames();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to add to library: ' + error.message, 'error');
+            }
+        });
+
+        async function deleteScannedGame(scannedGame) {
+            const confirmed = await confirmAction(
+                `Are you sure you want to delete "${scannedGame.filename}"? This will also remove the file from disk.`
+            );
+
+            if (!confirmed) return;
+
+            try {
+                showLoading('Deleting...');
+                await API.deleteScannedGame(scannedGame.id, true);
+                hideLoading();
+                showToast('Scanned game deleted successfully', 'success');
+                loadScannedGames();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to delete: ' + error.message, 'error');
+            }
+        }
+
+        async function fetchCover(scannedGame) {
+            try {
+                showLoading(`Fetching cover for "${scannedGame.suggested_title}"...`);
+                const result = await API.fetchScannedGameCover(scannedGame.id);
+                hideLoading();
+                showToast('Cover image fetched successfully!', 'success');
+                loadScannedGames();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to fetch cover: ' + error.message, 'error');
+            }
+        }
+
+        async function fetchAllCovers() {
+            const confirmed = await confirmAction(
+                'This will fetch cover images for all pending games without covers. This may take a while. Continue?'
+            );
+
+            if (!confirmed) return;
+
+            try {
+                showLoading('Fetching all cover images...');
+                const result = await API.fetchAllScannedCovers();
+                hideLoading();
+                showToast(`Successfully fetched ${result.success_count} covers. ${result.failed_count} failed.`, 'success');
+                loadScannedGames();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to fetch covers: ' + error.message, 'error');
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes) return '-';
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            if (bytes === 0) return '0 B';
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // Load scanned games on page load
+        loadScannedGames();
+    </script>
+</body>
+</html>

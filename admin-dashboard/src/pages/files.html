@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Management - GameManager Admin</title>
+    <link rel="stylesheet" href="../styles/admin.css">
+</head>
+
+<body>
+    <!-- Titlebar -->
+    <div class="titlebar">
+        <div class="titlebar-title">GameManager Admin Dashboard</div>
+        <div class="titlebar-controls">
+            <button class="titlebar-btn" onclick="minimizeWindow()">_</button>
+            <button class="titlebar-btn" onclick="maximizeWindow()">□</button>
+            <button class="titlebar-btn close" onclick="closeWindow()">×</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Admin Panel</h2>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-item" onclick="navigateTo('dashboard.html')">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('users.html')">
+                    <span class="nav-icon">👥</span>
+                    <span>Users</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('games.html')">
+                    <span class="nav-icon">🎮</span>
+                    <span>Games</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('scanned-games.html')">
+                    <span class="nav-icon">🔍</span>
+                    <span>Scanned Games</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('requests.html')">
+                    <span class="nav-icon">📝</span>
+                    <span>Game Requests</span>
+                </div>
+                <div class="nav-item active" onclick="navigateTo('files.html')">
+                    <span class="nav-icon">📁</span>
+                    <span>File Management</span>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="btn-danger" style="width: 100%;" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="content-header">
+                <h1>File Management</h1>
+                <p>Manage uploaded game files and images</p>
+            </div>
+
+            <div class="content-body">
+                <!-- File Cleanup Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Orphaned File Cleanup</h2>
+                    </div>
+                    <div class="card-body">
+                        <p style="color: #94a3b8; margin-bottom: 20px;">
+                            Remove files that are no longer referenced in the database. This helps free up disk space
+                            and keep your uploads folder clean.
+                        </p>
+
+                        <div class="flex gap-2">
+                            <button class="btn-warning" onclick="cleanupFiles()">
+                                🗑️ Clean Up Orphaned Files
+                            </button>
+                            <button class="btn-secondary" onclick="loadFileStats()">
+                                🔄 Refresh Stats
+                            </button>
+                        </div>
+
+                        <div id="cleanupResults" style="margin-top: 20px;"></div>
+                    </div>
+                </div>
+
+                <!-- File Statistics -->
+                <div class="stats-grid" id="fileStats">
+                    <div class="stat-card">
+                        <div class="stat-icon">📁</div>
+                        <div class="stat-label">Game Files</div>
+                        <div class="stat-value" id="gameFilesCount">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🖼️</div>
+                        <div class="stat-label">Cover Images</div>
+                        <div class="stat-value" id="coverImagesCount">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💾</div>
+                        <div class="stat-label">Total Storage</div>
+                        <div class="stat-value" id="totalStorage">-</div>
+                    </div>
+                </div>
+
+                <!-- Information Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">File Storage Information</h2>
+                    </div>
+                    <div class="card-body">
+                        <h3 style="font-size: 16px; margin-bottom: 12px;">Upload Directories:</h3>
+                        <ul style="color: #94a3b8; line-height: 1.8;">
+                            <li><strong>Game Files:</strong> backend/uploads/games/</li>
+                            <li><strong>Cover Images:</strong> backend/uploads/covers/</li>
+                        </ul>
+
+                        <h3 style="font-size: 16px; margin-top: 24px; margin-bottom: 12px;">File Management Tips:</h3>
+                        <ul style="color: #94a3b8; line-height: 1.8;">
+                            <li>Files are automatically renamed with timestamps when uploaded</li>
+                            <li>Deleting a game will NOT automatically delete its files from disk</li>
+                            <li>Use the cleanup tool regularly to remove orphaned files</li>
+                            <li>Maximum upload size: 500GB per file</li>
+                            <li>Supported game formats: .exe, .msi, .zip, .rar, .7z</li>
+                            <li>Supported image formats: .png, .jpg, .jpeg, .gif, .webp</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Backup Recommendations -->
+                <div class="card" style="border-left: 3px solid #f59e0b;">
+                    <div class="card-header">
+                        <h2 class="card-title">⚠️ Important Recommendations</h2>
+                    </div>
+                    <div class="card-body">
+                        <ul style="color: #94a3b8; line-height: 1.8;">
+                            <li><strong>Regular Backups:</strong> Create regular backups of your uploads folder and
+                                database</li>
+                            <li><strong>Disk Space:</strong> Monitor available disk space to prevent upload failures
+                            </li>
+                            <li><strong>File Verification:</strong> Periodically verify that game files are not
+                                corrupted</li>
+                            <li><strong>Security:</strong> Ensure proper file permissions on upload directories</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../components/api.js"></script>
+    <script src="../components/ui.js"></script>
+    <script src="../components/chunked-upload-manager.js"></script>
+    <script>
+        if (!checkAuth()) {
+            navigateTo('login.html');
+        }
+
+        async function loadFileStats() {
+            try {
+                showLoading('Loading file statistics...');
+
+                // Get statistics from the API
+                const stats = await API.getStatistics();
+
+                // Update stats display
+                document.getElementById('gameFilesCount').textContent = stats.games.total || '0';
+                document.getElementById('coverImagesCount').textContent = stats.games.total || '0';
+
+                // For total storage, we'd need to calculate from file sizes
+                // This is a placeholder - you could enhance the API to return actual file sizes
+                document.getElementById('totalStorage').textContent = 'N/A';
+
+                hideLoading();
+                showToast('File statistics loaded', 'info');
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to load statistics: ' + error.message, 'error');
+            }
+        }
+
+        async function cleanupFiles() {
+            const confirmed = await confirmAction(
+                'Are you sure you want to clean up orphaned files? This will permanently delete files that are not referenced in the database.'
+            );
+
+            if (!confirmed) return;
+
+            try {
+                showLoading('Cleaning up orphaned files...');
+
+                const result = await API.cleanupOrphanedFiles();
+
+                hideLoading();
+
+                const resultsDiv = document.getElementById('cleanupResults');
+
+                if (result.removed_files && result.removed_files.length > 0) {
+                    resultsDiv.innerHTML = `
+                        <div style="padding: 16px; background-color: rgba(16, 185, 129, 0.1); border-left: 3px solid #10b981; border-radius: 6px;">
+                            <p style="color: #10b981; font-weight: 600; margin-bottom: 8px;">
+                                ✓ ${result.message}
+                            </p>
+                            <details style="color: #94a3b8; font-size: 14px;">
+                                <summary style="cursor: pointer; margin-bottom: 8px;">View removed files</summary>
+                                <ul style="margin-top: 8px; max-height: 200px; overflow-y: auto;">
+                                    ${result.removed_files.map(file => `<li>${file}</li>`).join('')}
+                                </ul>
+                            </details>
+                        </div>
+                    `;
+                    showToast('Cleanup completed successfully', 'success');
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div style="padding: 16px; background-color: rgba(37, 99, 235, 0.1); border-left: 3px solid #2563eb; border-radius: 6px;">
+                            <p style="color: #2563eb;">
+                                ℹ️ No orphaned files found. Your file system is clean!
+                            </p>
+                        </div>
+                    `;
+                    showToast('No orphaned files found', 'info');
+                }
+
+                loadFileStats();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to cleanup files: ' + error.message, 'error');
+            }
+        }
+
+        // Load file stats on page load
+        loadFileStats();
+    </script>
+</body>
+
+</html>

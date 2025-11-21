@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Requests - GameManager Admin</title>
+    <link rel="stylesheet" href="../styles/admin.css">
+</head>
+
+<body>
+    <!-- Titlebar -->
+    <div class="titlebar">
+        <div class="titlebar-title">GameManager Admin Dashboard</div>
+        <div class="titlebar-controls">
+            <button class="titlebar-btn" onclick="minimizeWindow()">_</button>
+            <button class="titlebar-btn" onclick="maximizeWindow()">□</button>
+            <button class="titlebar-btn close" onclick="closeWindow()">×</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Admin Panel</h2>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-item" onclick="navigateTo('dashboard.html')">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('users.html')">
+                    <span class="nav-icon">👥</span>
+                    <span>Users</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('games.html')">
+                    <span class="nav-icon">🎮</span>
+                    <span>Games</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('scanned-games.html')">
+                    <span class="nav-icon">🔍</span>
+                    <span>Scanned Games</span>
+                </div>
+                <div class="nav-item active" onclick="navigateTo('requests.html')">
+                    <span class="nav-icon">📝</span>
+                    <span>Game Requests</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('files.html')">
+                    <span class="nav-icon">📁</span>
+                    <span>File Management</span>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="btn-danger" style="width: 100%;" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="content-header">
+                <h1>Game Requests</h1>
+                <p>Review and manage user game requests</p>
+            </div>
+
+            <div class="content-body">
+                <!-- Filter Tabs -->
+                <div class="flex gap-2 mb-3">
+                    <button class="btn-primary" onclick="filterByStatus(null)">All</button>
+                    <button class="btn-secondary" onclick="filterByStatus('pending')">Pending</button>
+                    <button class="btn-secondary" onclick="filterByStatus('approved')">Approved</button>
+                    <button class="btn-secondary" onclick="filterByStatus('rejected')">Rejected</button>
+                    <button class="btn-secondary" onclick="filterByStatus('completed')">Completed</button>
+                </div>
+
+                <!-- Requests Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container" id="requestsTable">
+                            <!-- Table will be loaded here -->
+                        </div>
+                        <div id="pagination"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Request Modal -->
+    <div class="modal-overlay" id="requestModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Review Game Request</h2>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Requested Game</label>
+                <input type="text" class="form-input" id="modalGameTitle" readonly>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Requested By</label>
+                <input type="text" class="form-input" id="modalUsername" readonly>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea class="form-textarea" id="modalDescription" readonly style="min-height: 80px;"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Request Date</label>
+                <input type="text" class="form-input" id="modalCreatedAt" readonly>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="modalStatus">
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Admin Notes</label>
+                <textarea class="form-textarea" id="modalAdminNotes"
+                    placeholder="Add notes about this request..."></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="hideModal('requestModal')">Cancel</button>
+                <button type="button" class="btn-primary" onclick="saveRequest()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../components/api.js"></script>
+    <script src="../components/ui.js"></script>
+    <script src="../components/chunked-upload-manager.js"></script>
+    <script>
+        if (!checkAuth()) {
+            navigateTo('login.html');
+        }
+
+        let currentPage = 1;
+        let currentStatus = null;
+        let editingRequestId = null;
+
+        async function loadRequests() {
+            try {
+                showLoading('Loading game requests...');
+
+                const data = await API.getAllGameRequests(currentStatus, currentPage, 50);
+
+                renderRequestsTable(data.requests);
+                renderPagination(data.pagination);
+
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to load requests: ' + error.message, 'error');
+            }
+        }
+
+        function renderRequestsTable(requests) {
+            const container = document.getElementById('requestsTable');
+
+            if (!requests || requests.length === 0) {
+                container.innerHTML = '<p style="color: #64748b; text-align: center; padding: 40px;">No game requests found</p>';
+                return;
+            }
+
+            const table = createTable(
+                [
+                    {
+                        key: 'id',
+                        label: 'ID',
+                        width: '60px'
+                    },
+                    {
+                        key: 'game_title',
+                        label: 'Game Title'
+                    },
+                    {
+                        key: 'user.username',
+                        label: 'Requested By'
+                    },
+                    {
+                        key: 'description',
+                        label: 'Description',
+                        format: (value) => {
+                            if (!value) return '-';
+                            return value.length > 50 ? value.substring(0, 50) + '...' : value;
+                        }
+                    },
+                    {
+                        key: 'status',
+                        label: 'Status',
+                        format: (value) => getStatusBadge(value)
+                    },
+                    {
+                        key: 'created_at',
+                        label: 'Requested',
+                        format: (value) => formatDate(value)
+                    }
+                ],
+                requests,
+                {
+                    width: '100px',
+                    render: (request) => {
+                        const actions = document.createElement('div');
+                        actions.className = 'flex gap-1';
+
+                        const reviewBtn = document.createElement('button');
+                        reviewBtn.className = 'btn-primary btn-small';
+                        reviewBtn.textContent = 'Review';
+                        reviewBtn.onclick = () => reviewRequest(request);
+
+                        actions.appendChild(reviewBtn);
+
+                        return actions;
+                    }
+                }
+            );
+
+            container.innerHTML = '';
+            container.appendChild(table);
+        }
+
+        function renderPagination(pagination) {
+            const container = document.getElementById('pagination');
+            container.innerHTML = '';
+
+            const paginationEl = createPagination(pagination, (page) => {
+                currentPage = page;
+                loadRequests();
+            });
+
+            container.appendChild(paginationEl);
+        }
+
+        function filterByStatus(status) {
+            currentStatus = status;
+            currentPage = 1;
+            loadRequests();
+
+            // Update button styles
+            const buttons = document.querySelectorAll('.content-body > .flex button');
+            buttons.forEach(btn => {
+                btn.className = 'btn-secondary';
+            });
+            event.target.className = 'btn-primary';
+        }
+
+        function reviewRequest(request) {
+            editingRequestId = request.id;
+            document.getElementById('modalGameTitle').value = request.game_title;
+            document.getElementById('modalUsername').value = request.user.username;
+            document.getElementById('modalDescription').value = request.description || '';
+            document.getElementById('modalCreatedAt').value = formatDateTime(request.created_at);
+            document.getElementById('modalStatus').value = request.status;
+            document.getElementById('modalAdminNotes').value = request.admin_notes || '';
+            showModal('requestModal');
+        }
+
+        async function saveRequest() {
+            if (!editingRequestId) return;
+
+            const updates = {
+                status: document.getElementById('modalStatus').value,
+                admin_notes: document.getElementById('modalAdminNotes').value
+            };
+
+            try {
+                showLoading('Updating request...');
+                await API.updateGameRequest(editingRequestId, updates);
+                hideLoading();
+                showToast('Request updated successfully', 'success');
+                hideModal('requestModal');
+                loadRequests();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to update request: ' + error.message, 'error');
+            }
+        }
+
+        // Load requests on page load
+        loadRequests();
+    </script>
+</body>
+
+</html>

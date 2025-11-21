@@ -1,0 +1,93 @@
+# Cloudflare Tunnel Configuration Example
+#
+# 1. Replace <TUNNEL-ID> with your actual tunnel ID
+# 2. Replace <USER> with your Windows username
+# 3. Replace gamemanager.yourdomain.com with your domain
+# 4. Save this as config.yml in your cloudflared directory
+#
+# Location: C:\Users\<USER>\.cloudflared\config.yml
+
+tunnel: <TUNNEL-ID>
+credentials-file: C:\Users\<USER>\.cloudflared\<TUNNEL-ID>.json
+
+# Ingress rules - route traffic to your local services
+ingress:
+  # Main API endpoint
+  - hostname: gamemanager.yourdomain.com
+    service: http://localhost:5000
+    originRequest:
+      noTLSVerify: true
+
+  # Catch-all rule (required)
+  - service: http_status:404
+
+# Optional: Logging
+# logDirectory: C:\Users\<USER>\.cloudflared\logs
+
+# Optional: Automatic tunnel updates
+# autoupdate-freq: 24h
+
+# ========================================
+# SETUP INSTRUCTIONS
+# ========================================
+#
+# 1. Install cloudflared:
+#    Download from: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/
+#
+# 2. Login to Cloudflare:
+#    cloudflared tunnel login
+#
+# 3. Create tunnel:
+#    cloudflared tunnel create gamemanager
+#
+# 4. Create this config file:
+#    Copy this file to: C:\Users\<USER>\.cloudflared\config.yml
+#
+# 5. Route DNS:
+#    cloudflared tunnel route dns gamemanager gamemanager.yourdomain.com
+#
+# 6. Run tunnel:
+#    cloudflared tunnel run gamemanager
+#
+# 7. Install as Windows service (optional):
+#    cloudflared service install
+#
+# 8. Update frontend API URL:
+#    Edit frontend/src/components/api.js
+#    Change: const API_URL = 'https://gamemanager.yourdomain.com/api';
+#
+# ========================================
+# QUICK START COMMANDS
+# ========================================
+#
+# Start tunnel manually:
+#   cloudflared tunnel run gamemanager
+#
+# Start as service:
+#   cloudflared service install
+#   sc start cloudflared
+#
+# Stop service:
+#   sc stop cloudflared
+#
+# Check tunnel status:
+#   cloudflared tunnel info gamemanager
+#
+# List all tunnels:
+#   cloudflared tunnel list
+#
+# ========================================
+# TROUBLESHOOTING
+# ========================================
+#
+# If tunnel won't connect:
+# - Check if backend is running on localhost:5000
+# - Verify tunnel ID and credentials file path
+# - Check Cloudflare dashboard for tunnel status
+# - Review logs in .cloudflared directory
+#
+# If accessing from other PC:
+# - Ensure DNS has propagated (may take a few minutes)
+# - Try accessing directly: https://gamemanager.yourdomain.com/api/games
+# - Check browser console for CORS errors
+# - Verify backend CORS is configured for your domain

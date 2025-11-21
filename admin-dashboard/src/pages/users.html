@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users - GameManager Admin</title>
+    <link rel="stylesheet" href="../styles/admin.css">
+</head>
+
+<body>
+    <!-- Titlebar -->
+    <div class="titlebar">
+        <div class="titlebar-title">GameManager Admin Dashboard</div>
+        <div class="titlebar-controls">
+            <button class="titlebar-btn" onclick="minimizeWindow()">_</button>
+            <button class="titlebar-btn" onclick="maximizeWindow()">□</button>
+            <button class="titlebar-btn close" onclick="closeWindow()">×</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Admin Panel</h2>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-item" onclick="navigateTo('dashboard.html')">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item active" onclick="navigateTo('users.html')">
+                    <span class="nav-icon">👥</span>
+                    <span>Users</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('games.html')">
+                    <span class="nav-icon">🎮</span>
+                    <span>Games</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('scanned-games.html')">
+                    <span class="nav-icon">🔍</span>
+                    <span>Scanned Games</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('requests.html')">
+                    <span class="nav-icon">📝</span>
+                    <span>Game Requests</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('files.html')">
+                    <span class="nav-icon">📁</span>
+                    <span>File Management</span>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="btn-danger" style="width: 100%;" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="content-header">
+                <div class="flex-between">
+                    <div>
+                        <h1>User Management</h1>
+                        <p>Manage all registered users</p>
+                    </div>
+                    <button class="btn-primary" onclick="showCreateUserModal()">➕ Create User</button>
+                </div>
+            </div>
+
+            <div class="content-body">
+                <!-- Search -->
+                <div class="search-box">
+                    <input type="text" class="search-input" id="searchInput"
+                        placeholder="Search users by username, email, or display name...">
+                    <span class="search-icon">🔍</span>
+                </div>
+
+                <!-- Users Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container" id="usersTable">
+                            <!-- Table will be loaded here -->
+                        </div>
+                        <div id="pagination"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit User Modal -->
+    <div class="modal-overlay" id="userModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Create User</h2>
+            </div>
+
+            <form id="userForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Username *</label>
+                        <input type="text" class="form-input" id="modalUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email *</label>
+                        <input type="email" class="form-input" id="modalEmail" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Display Name</label>
+                        <input type="text" class="form-input" id="modalDisplayName">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password <span id="passwordRequired">*</span></label>
+                        <input type="password" class="form-input" id="modalPassword">
+                        <small style="color: #94a3b8; font-size: 12px;">Leave blank to keep current password</small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" class="form-checkbox" id="modalIsAdmin">
+                        <span class="form-label" style="display: inline;">Admin Privileges</span>
+                    </label>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="hideModal('userModal')">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveUserBtn">Save User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../components/api.js"></script>
+    <script src="../components/ui.js"></script>
+    <script src="../components/chunked-upload-manager.js"></script>
+    <script>
+        if (!checkAuth()) {
+            navigateTo('login.html');
+        }
+
+        let currentPage = 1;
+        let currentSearch = '';
+        let editingUserId = null;
+
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', debounce(() => {
+            currentSearch = searchInput.value;
+            currentPage = 1;
+            loadUsers();
+        }, 500));
+
+        async function loadUsers() {
+            try {
+                showLoading('Loading users...');
+
+                const data = await API.getAllUsers(currentPage, 50, currentSearch);
+
+                renderUsersTable(data.users);
+                renderPagination(data.pagination);
+
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to load users: ' + error.message, 'error');
+            }
+        }
+
+        function renderUsersTable(users) {
+            const container = document.getElementById('usersTable');
+
+            if (!users || users.length === 0) {
+                container.innerHTML = '<p style="color: #64748b; text-align: center; padding: 40px;">No users found</p>';
+                return;
+            }
+
+            const table = createTable(
+                [
+                    {
+                        key: 'id',
+                        label: 'ID',
+                        width: '60px'
+                    },
+                    {
+                        key: 'username',
+                        label: 'Username'
+                    },
+                    {
+                        key: 'email',
+                        label: 'Email'
+                    },
+                    {
+                        key: 'display_name',
+                        label: 'Display Name'
+                    },
+                    {
+                        key: 'is_admin',
+                        label: 'Role',
+                        format: (value) => value ?
+                            '<span class="badge badge-danger">Admin</span>' :
+                            '<span class="badge badge-secondary">User</span>'
+                    },
+                    {
+                        key: 'game_count',
+                        label: 'Games',
+                        width: '80px'
+                    },
+                    {
+                        key: 'is_online',
+                        label: 'Status',
+                        format: (value) => value ?
+                            '<span class="badge badge-success">Online</span>' :
+                            '<span class="badge badge-secondary">Offline</span>'
+                    }
+                ],
+                users,
+                {
+                    width: '150px',
+                    render: (user) => {
+                        const actions = document.createElement('div');
+                        actions.className = 'flex gap-1';
+
+                        const editBtn = document.createElement('button');
+                        editBtn.className = 'btn-primary btn-small';
+                        editBtn.textContent = 'Edit';
+                        editBtn.onclick = () => editUser(user);
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'btn-danger btn-small';
+                        deleteBtn.textContent = 'Delete';
+                        deleteBtn.onclick = () => deleteUser(user);
+
+                        actions.appendChild(editBtn);
+                        actions.appendChild(deleteBtn);
+
+                        return actions;
+                    }
+                }
+            );
+
+            container.innerHTML = '';
+            container.appendChild(table);
+        }
+
+        function renderPagination(pagination) {
+            const container = document.getElementById('pagination');
+            container.innerHTML = '';
+
+            const paginationEl = createPagination(pagination, (page) => {
+                currentPage = page;
+                loadUsers();
+            });
+
+            container.appendChild(paginationEl);
+        }
+
+        function showCreateUserModal() {
+            editingUserId = null;
+            document.getElementById('modalTitle').textContent = 'Create User';
+            document.getElementById('userForm').reset();
+            document.getElementById('passwordRequired').style.display = 'inline';
+            document.getElementById('modalPassword').required = true;
+            showModal('userModal');
+        }
+
+        function editUser(user) {
+            editingUserId = user.id;
+            document.getElementById('modalTitle').textContent = 'Edit User';
+            document.getElementById('modalUsername').value = user.username;
+            document.getElementById('modalEmail').value = user.email;
+            document.getElementById('modalDisplayName').value = user.display_name || '';
+            document.getElementById('modalIsAdmin').checked = user.is_admin;
+            document.getElementById('modalPassword').value = '';
+            document.getElementById('modalPassword').required = false;
+            document.getElementById('passwordRequired').style.display = 'none';
+            showModal('userModal');
+        }
+
+        async function deleteUser(user) {
+            const confirmed = await confirmAction(
+                `Are you sure you want to delete user "${user.username}"? This action cannot be undone.`
+            );
+
+            if (!confirmed) return;
+
+            try {
+                showLoading('Deleting user...');
+                await API.deleteUser(user.id);
+                hideLoading();
+                showToast('User deleted successfully', 'success');
+                loadUsers();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to delete user: ' + error.message, 'error');
+            }
+        }
+
+        document.getElementById('userForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const userData = {
+                username: document.getElementById('modalUsername').value,
+                email: document.getElementById('modalEmail').value,
+                display_name: document.getElementById('modalDisplayName').value,
+                is_admin: document.getElementById('modalIsAdmin').checked
+            };
+
+            const password = document.getElementById('modalPassword').value;
+            if (password) {
+                userData.password = password;
+            }
+
+            try {
+                showLoading(editingUserId ? 'Updating user...' : 'Creating user...');
+
+                if (editingUserId) {
+                    await API.updateUser(editingUserId, userData);
+                    showToast('User updated successfully', 'success');
+                } else {
+                    await API.createUser(userData);
+                    showToast('User created successfully', 'success');
+                }
+
+                hideLoading();
+                hideModal('userModal');
+                loadUsers();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to save user: ' + error.message, 'error');
+            }
+        });
+
+        // Load users on page load
+        loadUsers();
+    </script>
+</body>
+
+</html>
