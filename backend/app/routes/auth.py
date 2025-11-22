@@ -21,11 +21,15 @@ def register():
         if User.query.filter_by(email=data['email']).first():
             return jsonify({'error': 'Email already exists'}), 400
 
+        # Check if this is the first user (auto-promote to admin)
+        is_first_user = User.query.count() == 0
+
         # Create new user
         user = User(
             username=data['username'],
             email=data['email'],
-            display_name=data.get('display_name', data['username'])
+            display_name=data.get('display_name', data['username']),
+            is_admin=is_first_user  # First user is automatically admin
         )
         user.set_password(data['password'])
 

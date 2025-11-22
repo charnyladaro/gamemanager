@@ -32,6 +32,7 @@ def create_app(config_class=Config):
     from app.routes.payments import payments_bp
     from app.routes.telegram_webhook import telegram_webhook_bp
     from app.routes.static_files import static_files_bp  # New: for serving static files via Cloudflare Tunnel
+    from app.routes.setup import setup_bp  # New: for initial setup
     app.register_blueprint(auth_bp)
     app.register_blueprint(games_bp)
     app.register_blueprint(users_bp)
@@ -42,6 +43,7 @@ def create_app(config_class=Config):
     app.register_blueprint(payments_bp)
     app.register_blueprint(telegram_webhook_bp)
     app.register_blueprint(static_files_bp)  # New: serves /static/, /uploads/, /scanned_games/ routes
+    app.register_blueprint(setup_bp)  # New: setup endpoints
 
     # Create database tables
     with app.app_context():
