@@ -1,17 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="GameManager - Your personal game library and store. Browse, purchase, and manage games with GCash payments. Free and paid games available.">
-    <meta name="keywords" content="game manager, game library, game store, gcash games, buy pc games, game launcher, gaming, pc games philippines">
+    <meta name="description"
+        content="GameManager - Your personal game library and store. Browse, purchase, and manage games with GCash payments. Free and paid games available.">
+    <meta name="keywords"
+        content="game manager, game library, game store, gcash games, buy pc games, game launcher, gaming, pc games philippines">
     <meta name="author" content="GameManager Team">
     <title>GameManager - Your Personal Game Library</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
 </head>
+
 <body>
     <!-- Navigation -->
     <nav class="navbar">
@@ -34,7 +39,8 @@
         <div class="container">
             <div class="hero-content">
                 <h1 class="hero-title">Your Games.<br>One Beautiful Library.</h1>
-                <p class="hero-subtitle">Discover, purchase, and manage your game collection from a single, elegant platform. Browse free and paid games with integrated GCash payments.</p>
+                <p class="hero-subtitle">Experience the ultimate way to manage your PC games. A stunning library,
+                    seamless GCash payments, and a curated store—all in one beautiful app.</p>
                 <div class="hero-buttons">
                     <a href="#download" class="btn btn-primary btn-large">
                         <span class="btn-icon">⬇</span>
@@ -44,7 +50,7 @@
                         Learn More
                     </a>
                 </div>
-                <p class="hero-note">Version 1.0.0 • Windows 10/11 • Free Forever</p>
+                <p class="hero-note" id="hero-note">Version 1.0.0 • Windows 10/11 • Free Forever</p>
             </div>
             <div class="hero-image">
                 <div class="app-mockup">
@@ -91,56 +97,52 @@
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon">🏪</div>
-                    <h3>Game Store</h3>
-                    <p>Browse a curated collection of free and premium games. Purchase games securely with GCash payment integration.</p>
+                    <h3>Curated Game Store</h3>
+                    <p>Instant access to a hand-picked collection of top-tier free and premium games. No bloat, just
+                        great gaming.</p>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">💳</div>
-                    <h3>GCash Payments</h3>
-                    <p>Buy games easily with GCash. Submit your payment reference and get instant access once verified by admins.</p>
+                    <h3>Seamless GCash Payments</h3>
+                    <p>Secure, hassle-free payments via GCash. Get your games quickly without needing a credit card.</p>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">📚</div>
-                    <h3>Beautiful Library</h3>
-                    <p>Organize all your games in one stunning, easy-to-navigate library with automatic cover artwork.</p>
+                    <h3>Stunning Library</h3>
+                    <p>Transform your chaotic folders into a visual masterpiece. Your games have never looked this good.
+                    </p>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">🖼️</div>
-                    <h3>Auto Cover Fetch</h3>
-                    <p>Automatically downloads high-quality game cover images from RAWG gaming database for a professional look.</p>
+                    <h3>Professional Polish</h3>
+                    <p>We do the heavy lifting. Automatic high-res cover art downloads give your library a professional,
+                        polished look instantly.</p>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">👥</div>
-                    <h3>Friends & Social</h3>
-                    <p>Connect with friends, send friend requests, see who's online, and share your gaming experiences.</p>
+                    <h3>Connect & Play</h3>
+                    <p>Gaming is better together. Connect with friends, see what they're playing, and share your
+                        victories.</p>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">🎯</div>
-                    <h3>Game Requests</h3>
-                    <p>Request new games to be added to the store and track the status of your requests in real-time.</p>
+                    <h3>Your Voice Matters</h3>
+                    <p>Can't find your favorite game? Request it directly in the app, and we'll work on bringing it to
+                        the store.</p>
                 </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">🔒</div>
-                    <h3>Admin Dashboard</h3>
-                    <p>Powerful admin panel for managing users, games, payments, and game requests with detailed analytics.</p>
-                </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">📊</div>
-                    <h3>Payment History</h3>
-                    <p>Track all your purchases and payment statuses. View GCash references and download receipts anytime.</p>
-                </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">🔍</div>
-                    <h3>Smart Scanning</h3>
-                    <p>Auto-detect games from folders and extract titles automatically from file names for quick setup.</p>
+                    <h3>Effortless Setup</h3>
+                    <p>Point us to your game folder, and we'll handle the rest. Smart scanning detects and organizes
+                        your existing collection in seconds.</p>
                 </div>
             </div>
         </div>
@@ -167,12 +169,14 @@
                     </div>
 
                     <div class="download-action">
-                        <a href="downloads/GameManager-Setup.exe" class="btn btn-primary btn-xl" download>
+                        <a href="downloads/GameManager-Setup.exe" class="btn btn-primary btn-xl" id="download-btn"
+                            download>
                             <span class="btn-icon">⬇</span>
                             Download Now
                         </a>
-                        <p class="download-version">Version 1.0.0 • 180 MB</p>
-                        <p class="download-note">By downloading, you agree to our <a href="#terms">Terms of Service</a></p>
+                        <p class="download-version" id="download-note">Version 1.0.0 • 180 MB</p>
+                        <p class="download-note">By downloading, you agree to our <a href="#terms">Terms of Service</a>
+                        </p>
                     </div>
                 </div>
 
@@ -208,7 +212,8 @@
                     <div class="step-number">1</div>
                     <div class="step-content">
                         <h3>Download & Install</h3>
-                        <p>Download GameManager and run the installer. The setup wizard will guide you through the installation process.</p>
+                        <p>Download GameManager and run the installer. The setup wizard will guide you through the
+                            installation process.</p>
                     </div>
                 </div>
 
@@ -216,7 +221,8 @@
                     <div class="step-number">2</div>
                     <div class="step-content">
                         <h3>Create an Account</h3>
-                        <p>Launch GameManager and create your free account. Your library will be synced and accessible anytime.</p>
+                        <p>Launch GameManager and create your free account. Your library will be synced and accessible
+                            anytime.</p>
                     </div>
                 </div>
 
@@ -248,7 +254,9 @@
                         <span class="faq-toggle">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>Yes! The GameManager application is completely free to download and use. While the app is free, the store contains both free games and paid games with affordable prices. You only pay for the games you want to purchase.</p>
+                        <p>Yes! The GameManager application is completely free to download and use. While the app is
+                            free, the store contains both free games and paid games with affordable prices. You only pay
+                            for the games you want to purchase.</p>
                     </div>
                 </div>
 
@@ -258,7 +266,10 @@
                         <span class="faq-toggle">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>Purchasing games is easy! Browse the store, click on a game, and select "Purchase". You'll be guided through the GCash payment process where you'll send the amount and submit your GCash reference number. Once an admin verifies your payment, the game will be automatically added to your library!</p>
+                        <p>Purchasing games is easy! Browse the store, click on a game, and select "Purchase". You'll be
+                            guided through the GCash payment process where you'll send the amount and submit your GCash
+                            reference number. Once an admin verifies your payment, the game will be automatically added
+                            to your library!</p>
                     </div>
                 </div>
 
@@ -268,7 +279,10 @@
                         <span class="faq-toggle">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>Currently, we support GCash payments for purchasing games. After initiating a purchase, you'll receive instructions to send payment via GCash. Simply submit your transaction reference number and wait for admin verification. We're working on adding more payment methods in the future!</p>
+                        <p>Currently, we support GCash payments for purchasing games. After initiating a purchase,
+                            you'll receive instructions to send payment via GCash. Simply submit your transaction
+                            reference number and wait for admin verification. We're working on adding more payment
+                            methods in the future!</p>
                     </div>
                 </div>
 
@@ -278,7 +292,10 @@
                         <span class="faq-toggle">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>The GameManager store features a curated collection of both free and paid games. Browse the store to see available titles, prices, and descriptions. Games range from free downloads to affordable paid titles (typically ₱50-₱200). New games are regularly added based on user requests and admin curation.</p>
+                        <p>The GameManager store features a curated collection of both free and paid games. Browse the
+                            store to see available titles, prices, and descriptions. Games range from free downloads to
+                            affordable paid titles (typically ₱50-₱200). New games are regularly added based on user
+                            requests and admin curation.</p>
                     </div>
                 </div>
 
@@ -288,7 +305,10 @@
                         <span class="faq-toggle">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>Payment verification is typically completed within a few hours during business hours. Once you submit your GCash reference number, admins will verify the transaction and approve your purchase. You'll receive a notification when the game is added to your library. You can track your payment status in the Payment History section.</p>
+                        <p>Payment verification is typically completed within a few hours during business hours. Once
+                            you submit your GCash reference number, admins will verify the transaction and approve your
+                            purchase. You'll receive a notification when the game is added to your library. You can
+                            track your payment status in the Payment History section.</p>
                     </div>
                 </div>
 
@@ -298,7 +318,9 @@
                         <span class="faq-toggle">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>GameManager uses the RAWG Video Games Database API to automatically search for and download high-quality cover artwork for your games. Simply scan your games, and the covers are fetched automatically based on the game titles.</p>
+                        <p>GameManager uses the RAWG Video Games Database API to automatically search for and download
+                            high-quality cover artwork for your games. Simply scan your games, and the covers are
+                            fetched automatically based on the game titles.</p>
                     </div>
                 </div>
 
@@ -308,7 +330,8 @@
                         <span class="faq-toggle">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>While you need an internet connection to initially download cover images and sync your library, you can browse your library and launch games offline once they're set up.</p>
+                        <p>While you need an internet connection to initially download cover images and sync your
+                            library, you can browse your library and launch games offline once they're set up.</p>
                     </div>
                 </div>
 
@@ -318,7 +341,9 @@
                         <span class="faq-toggle">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>Yes! Your data is stored securely on the backend server. We use JWT authentication and encrypt all passwords. We never share your data with third parties and don't track your gaming habits.</p>
+                        <p>Yes! Your data is stored securely on the backend server. We use JWT authentication and
+                            encrypt all passwords. We never share your data with third parties and don't track your
+                            gaming habits.</p>
                     </div>
                 </div>
 
@@ -328,7 +353,9 @@
                         <span class="faq-toggle">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>GameManager requires Windows 10 or 11 (64-bit), at least 4GB of RAM, and 500MB of free storage space. An internet connection is needed for downloading cover images and syncing your library.</p>
+                        <p>GameManager requires Windows 10 or 11 (64-bit), at least 4GB of RAM, and 500MB of free
+                            storage space. An internet connection is needed for downloading cover images and syncing
+                            your library.</p>
                     </div>
                 </div>
 
@@ -338,7 +365,9 @@
                         <span class="faq-toggle">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>Adding games to the store requires admin access through the GameManagerAdmin dashboard. Admins can scan game files from folders, automatically fetch cover images, and publish games to the store for all users to download.</p>
+                        <p>Adding games to the store requires admin access through the GameManagerAdmin dashboard.
+                            Admins can scan game files from folders, automatically fetch cover images, and publish games
+                            to the store for all users to download.</p>
                     </div>
                 </div>
 
@@ -348,7 +377,9 @@
                         <span class="faq-toggle">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>Absolutely! GameManager has a built-in game request feature. Simply go to the "Game Requests" section, submit your request with the game title and description, and admins will review it. You can track the status of your requests anytime.</p>
+                        <p>Absolutely! GameManager has a built-in game request feature. Simply go to the "Game Requests"
+                            section, submit your request with the game title and description, and admins will review it.
+                            You can track the status of your requests anytime.</p>
                     </div>
                 </div>
             </div>
@@ -404,6 +435,8 @@
         </div>
     </footer>
 
+    <script src="js/release_config.js"></script>
     <script src="js/script.js"></script>
 </body>
+
 </html>

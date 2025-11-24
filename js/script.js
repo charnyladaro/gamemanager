@@ -2,7 +2,7 @@
 // FAQ Accordion
 // ====================================
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const faqItems = document.querySelectorAll('.faq-item');
 
     faqItems.forEach(item => {
@@ -47,7 +47,7 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 
 const downloadButtons = document.querySelectorAll('a[download]');
 downloadButtons.forEach(button => {
-    button.addEventListener('click', function() {
+    button.addEventListener('click', function () {
         // Track download event
         console.log('Download initiated');
         // You can add analytics tracking here
@@ -131,7 +131,7 @@ document.querySelectorAll('.step').forEach((step, index) => {
 // This warns users that the download link needs to be updated
 const downloadLinks = document.querySelectorAll('a[href*="downloads/GameManager"]');
 downloadLinks.forEach(link => {
-    link.addEventListener('click', function(e) {
+    link.addEventListener('click', function (e) {
         const href = this.getAttribute('href');
 
         // Check if the link points to a placeholder
@@ -210,3 +210,27 @@ async function checkLatestVersion() {
 // checkLatestVersion();
 
 console.log('GameManager Website Loaded Successfully! 🎮');
+
+// ====================================
+// Apply Release Configuration
+// ====================================
+
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof releaseConfig !== 'undefined') {
+        const heroNote = document.getElementById('hero-note');
+        const downloadBtn = document.getElementById('download-btn');
+        const downloadNote = document.getElementById('download-note');
+
+        if (heroNote && releaseConfig.heroNote) {
+            heroNote.textContent = releaseConfig.heroNote;
+        }
+
+        if (downloadBtn && releaseConfig.downloadUrl) {
+            downloadBtn.href = releaseConfig.downloadUrl;
+        }
+
+        if (downloadNote && releaseConfig.downloadNote) {
+            downloadNote.textContent = releaseConfig.downloadNote;
+        }
+    }
+});
